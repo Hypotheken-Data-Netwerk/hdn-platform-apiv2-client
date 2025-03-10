@@ -37,6 +37,6 @@ build/
 ### Mac OS ###
 .DS_Store
 
-/003059.p12
+/cert.p12
 /settings.properties
 /.idea

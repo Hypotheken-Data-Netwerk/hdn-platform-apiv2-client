@@ -4,13 +4,13 @@
 
     <groupId>org.hdn</groupId>
     <artifactId>api</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>1.0.1</version>
 
     <scm>
         <connection>scm:git:git://github.com/dfranken/hdn-platform-apiv2-client.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/dfranken/hdn-platform-apiv2-client.git</developerConnection>
         <url>https://github.com/dfranken/hdn-platform-apiv2-client</url>
-        <tag>api-1.0.0</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <properties>
@@ -52,6 +52,7 @@
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <version>5.9.0</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.assertj</groupId>
