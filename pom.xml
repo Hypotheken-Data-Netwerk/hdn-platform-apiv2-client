@@ -8,6 +8,13 @@
     <artifactId>api</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 
+    <scm>
+        <connection>scm:git:git://github.com/dfranken/hdn-platform-apiv2-client.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/dfranken/hdn-platform-apiv2-client.git</developerConnection>
+        <url>https://github.com/dfranken/hdn-platform-apiv2-client</url>
+        <tag>HEAD</tag>
+    </scm>
+
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
