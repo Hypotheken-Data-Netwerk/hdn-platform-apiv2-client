@@ -4,7 +4,7 @@
 
     <groupId>org.hdn</groupId>
     <artifactId>api</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.3</version>
 
     <scm>
         <connection>scm:git:git://github.com/dfranken/hdn-platform-apiv2-client.git</connection>
@@ -40,7 +40,7 @@
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.4.12</version>
+            <version>1.5.13</version>
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>

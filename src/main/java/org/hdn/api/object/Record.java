@@ -138,6 +138,10 @@ public class Record extends APIObject {
      */
     private String sub;
     /**
+     * The UUID of the parent record
+     */
+    private String parentRecord;
+    /**
      * The Zulu timestamp of the moment the record has been created
      */
     private Instant creationDate;
@@ -252,6 +256,7 @@ public class Record extends APIObject {
         );
         creationDate = Instant.parse(attributes.getString("creationDate"));
         resourceUuid = attributes.getString("resourceUuid");
+        parentRecord = attributes.optString("parentRecord");
         this.status = new Status(status.getString("value"), Instant.parse(status.getString("modifiedTimestamp")));
         dossierUuid = attributes.getString("dossierUuid");
         eventList = new EventList(dossierUuid, resourceUuid);
@@ -530,6 +535,16 @@ public class Record extends APIObject {
     @SuppressWarnings("unused")
     public String getResourceUuid() {
         return resourceUuid;
+    }
+
+    /**
+     * Returns the UUID of the parent record
+     *
+     * @return the UUID
+     */
+    @SuppressWarnings("unused")
+    public String getParentRecord() {
+        return parentRecord;
     }
 
     /**
