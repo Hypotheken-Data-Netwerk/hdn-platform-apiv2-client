@@ -35,6 +35,6 @@ jobs:
           echo "Certificaat wordt gedecodeerd..."
           echo "${{ secrets.CERTIFICATE_P12 }}" | base64 --decode > 003059.p12
       - name: Publish package
-        run: mvn deploy
+        run: mvn --batch-mode deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
