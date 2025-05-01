@@ -1,0 +1,40 @@
+name: Publish package to GitHub Packages
+on:
+  release:
+    types: [created]
+    workflow_dispatch:
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+      - name: Generate settings.properties file
+        run: |
+          echo "Genereren van settings.properties bestand..."
+          # Genereer settings.properties met behulp van GitHub Secrets
+          echo "baseURL=https://pot-gto.hdn.nl/api/v2" > settings.properties
+          echo "authURL=https://auth-gto.hdn.nl" >> settings.properties
+          echo "certificate=003059.p12" >> settings.properties
+          echo "password=${{ secrets.SECRET_PASSWORD }}" >> settings.properties
+          echo "publickeyUUID=3b44cf92-01f3-473e-89c6-1da43175b191" >> settings.properties
+          echo "senderNode=003059" >> settings.properties
+          echo "receiverNode=000372" >> settings.properties
+          echo "processInterval=10" >> settings.properties
+          echo "tokenInterval=500" >> settings.properties
+          echo "clientID=hdn-pot-client" >> settings.properties
+          echo "clientSecret=1507049c-c587-475d-821b-0b867b1bf8fb" >> settings.properties
+
+          # Als je een certificaat als base64 nodig hebt:
+          echo "Certificaat wordt gedecodeerd..."
+          echo "${{ secrets.CERTIFICATE_P12 }}" | base64 --decode > 003059.p12
+      - name: Publish package
+        run: mvn --batch-mode deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
