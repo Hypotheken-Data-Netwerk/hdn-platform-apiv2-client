@@ -4,7 +4,7 @@
 
     <groupId>org.hdn</groupId>
     <artifactId>api</artifactId>
-    <version>1.0.4</version>
+    <version>1.0.6</version>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
