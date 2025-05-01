@@ -2,27 +2,12 @@ name: Publish package
 
 on:
   pull_request:
-    types: [closed]
+    types: [opened, closed]
     branches: [main]
 
 jobs:
-  deploy:
-    if: github.event.pull_request.merged == true
+  test:
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v3
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          server-id: github
-          server-username: github.actor
-          server-password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Publish to GitHub Packages
-        run: mvn deploy
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check PR event
+        run: echo "Pull request event triggered!"
