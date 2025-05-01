@@ -21,7 +21,7 @@ jobs:
           distribution: 'temurin'
           server-id: github # Value of the distributionManagement/repository/id field of the pom.xml
           server-username: github.actor
-          server-password: ${{ secrets.TOKEN }}  # Gebruik hier je classic token
+          server-password: ${{ secrets.CLASSIC_TOKEN }}  # Gebruik hier je classic token
           settings-path: ${{ github.workspace }} # location for the settings.xml file
 
       - name: Generate settings.properties file
@@ -48,6 +48,6 @@ jobs:
         run: mvn -B package --file pom.xml
 
       - name: Publish to GitHub Packages Apache Maven
-        run: mvn deploy -DaltDeploymentRepository=github::https://maven.pkg.github.com/Hypotheken-Data-Netwerk/hdn-platform-apiv2-client -Dusername=${{ github.actor }} -Dpassword=${{ secrets.TOKEN }}
+        run: mvn deploy -DaltDeploymentRepository=github::https://maven.pkg.github.com/Hypotheken-Data-Netwerk/hdn-platform-apiv2-client -Dusername=${{ github.actor }} -Dpassword=${{ secrets.CLASSIC_TOKEN }}
         env:
-          GITHUB_TOKEN: ${{ secrets.TOKEN }}  # Gebruik hier je classic token in plaats van het standaard GITHUB_TOKEN
+          GITHUB_TOKEN: ${{ secrets.CLASSIC_TOKEN }}  # Gebruik hier je classic token in plaats van het standaard GITHUB_TOKEN
