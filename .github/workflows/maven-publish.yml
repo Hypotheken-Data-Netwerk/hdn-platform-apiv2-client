@@ -49,5 +49,3 @@ jobs:
 
       - name: Publish to GitHub Packages Apache Maven
         run: mvn deploy -DaltDeploymentRepository=github::https://maven.pkg.github.com/Hypotheken-Data-Netwerk/hdn-platform-apiv2-client -Dusername=${{ github.actor }} -Dpassword=${{ secrets.CLASSIC_TOKEN }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.CLASSIC_TOKEN }}  # Gebruik hier je classic token in plaats van het standaard GITHUB_TOKEN
