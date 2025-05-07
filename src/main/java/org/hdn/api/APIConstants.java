@@ -39,6 +39,7 @@ public class APIConstants {
             "PensioenOverzichtBericht",
             "StudieLeningBericht",
             "TaxatieBericht",
+            "ValidatieMelding",
             "VoorafIngevuldeAangifteBericht",
             "AX OfferteAanvraag",
             "CA ConsumentenBronAanvraag",
