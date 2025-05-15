@@ -335,7 +335,12 @@ public class Record extends APIObject {
 
         if (APIResponse.getResponse().statusCode() == 200) {
             updateAttributes(APIResponse.getBody());
+
             message = new String(Base64.getDecoder().decode(APIResponse.getBody().getJSONObject("message").getString("data")));
+            if(APIResponse.getBody().getJSONObject("message").has("signature")) {
+                publicKey = APIResponse.getBody().getJSONObject("message").getJSONObject("signature").getJSONObject("publicKey").getString("uuid");
+                messageSigned = APIResponse.getBody().getJSONObject("message").getJSONObject("signature").getString("value").getBytes();
+            }
         }
         return this;
     }
@@ -496,6 +501,12 @@ public class Record extends APIObject {
     public String getMessage() {
         return message;
     }
+
+    /**
+     * Returns the signature of the message
+     * @return the signature
+     */
+    public byte[] getSignature() { return messageSigned; }
 
     /**
      * Returns the header object of the record
