@@ -21,6 +21,11 @@ public class APIConstants {
     public static final String DOSSIER_GET_EVENTS = "/dossiers/%s/events";
     public static final String RECORD_GET_EVENTS = "/dossiers/%s/records/%s/events";
     public static final String EVENT_GET = "/dossiers/%s/records%s/events/%s";
+    public static final String HOOKS_GET = "/hooks";
+    public static final String HOOK_CREATE = "/hooks";
+    public static final String HOOK_GET = "/hooks/%s";
+    public static final String HOOK_DELETE = "/hooks/%s";
+    public static final String HOOK_PUT = "/hooks/%s";
 
     @SuppressWarnings("unused")
     public static final List<String> MessageTypes = List.of(

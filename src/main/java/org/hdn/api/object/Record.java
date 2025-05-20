@@ -506,6 +506,7 @@ public class Record extends APIObject {
      * Returns the signature of the message
      * @return the signature
      */
+    @SuppressWarnings("unused")
     public byte[] getSignature() { return messageSigned; }
 
     /**
@@ -567,4 +568,11 @@ public class Record extends APIObject {
     public EventList getEventList() {
         return eventList;
     }
+
+    /**
+     * Returns the dossier uuid of the record
+     *
+     * @return the dossier uuid
+     */
+    public String getDossierUuid() { return dossierUuid; }
 }
