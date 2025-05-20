@@ -191,8 +191,7 @@ public class APIController {
     }
 
     /**
-     * /**
-     * Performs a post call without parameters
+     * Performs a post call with parameters
      *
      * @param URL  the URL to call, without the baseURL part
      * @param body the body to use in the call
@@ -206,6 +205,57 @@ public class APIController {
                 .header("Authorization", "Bearer " + accessToken)
                 .header("Content-Type", "application/json")
                 .POST(body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+        try (HttpClient client = HttpClient.newBuilder().sslContext(sslContext).build()) {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            return new APIResponse(response);
+        } catch (IOException | InterruptedException e) {
+            logger.error("{}", e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * Performs a put call with parameters
+     *
+     * @param URL  the URL to call, without the baseURL part
+     * @param body the body to use in the call
+     * @return returns the APIResponse
+     * @throws IOException          thrown when an IO error occurs
+     * @throws InterruptedException thrown when the request is interruped
+     */
+    public APIResponse put(String URL, String body) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseURL + URL))
+                .header("Authorization", "Bearer " + accessToken)
+                .header("Content-Type", "application/json")
+                .PUT(body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body))
+                .build();
+
+        try (HttpClient client = HttpClient.newBuilder().sslContext(sslContext).build()) {
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            return new APIResponse(response);
+        } catch (IOException | InterruptedException e) {
+            logger.error("{}", e.getMessage());
+            throw e;
+        }
+    }
+
+    /**
+     * Performs a delete call without parameters
+     *
+     * @param URL the URL to call, without the baseURL part
+     * @return returns the APIResponse
+     * @throws IOException          thrown when an IO error occurs
+     * @throws InterruptedException thrown when the request is interruped
+     */
+    public APIResponse delete(String URL) throws IOException, InterruptedException {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseURL + URL))
+                .header("Authorization", "Bearer " + accessToken)
+                .header("Content-Type", "application/json")
+                .DELETE()
                 .build();
 
         try (HttpClient client = HttpClient.newBuilder().sslContext(sslContext).build()) {
