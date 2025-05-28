@@ -169,7 +169,7 @@ public class APIController {
                 .GET()
                 .build();
 
-        try (HttpClient client = HttpClient.newBuilder().sslContext(sslContext).build()) {
+        try (HttpClient client = HttpClient.newBuilder().build()) {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             return new APIResponse(response);
         } catch (IOException | InterruptedException e) {
@@ -207,7 +207,7 @@ public class APIController {
                 .POST(body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
-        try (HttpClient client = HttpClient.newBuilder().sslContext(sslContext).build()) {
+        try (HttpClient client = HttpClient.newBuilder().build()) {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             return new APIResponse(response);
         } catch (IOException | InterruptedException e) {
@@ -233,7 +233,7 @@ public class APIController {
                 .PUT(body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body))
                 .build();
 
-        try (HttpClient client = HttpClient.newBuilder().sslContext(sslContext).build()) {
+        try (HttpClient client = HttpClient.newBuilder().build()) {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             return new APIResponse(response);
         } catch (IOException | InterruptedException e) {
@@ -258,7 +258,7 @@ public class APIController {
                 .DELETE()
                 .build();
 
-        try (HttpClient client = HttpClient.newBuilder().sslContext(sslContext).build()) {
+        try (HttpClient client = HttpClient.newBuilder().build()) {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             return new APIResponse(response);
         } catch (IOException | InterruptedException e) {

@@ -176,7 +176,7 @@ public class HookTest {
             assertThat(responseRecord).isNotNull();
             logger.info("Record found with resource UUID {} and dossier UUID {}", responseRecord.getResourceUuid(), responseRecord.getDossierUuid());
 
-            URI uri = new URI("http", "hdn.redbluetechnologies.com", "/lookup.php", "dossierUuid="+responseRecord.getDossierUuid()+"&recordUuid="+responseRecord.getResourceUuid(), null);
+            URI uri = new URI("https", "hdn.redbluetechnologies.com", "/lookup.php", "dossierUuid="+responseRecord.getDossierUuid()+"&recordUuid="+responseRecord.getResourceUuid(), null);
             URL url = uri.toURL();
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
