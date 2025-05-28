@@ -7,6 +7,9 @@ import java.util.List;
  */
 public class APIConstants {
     @SuppressWarnings("unused")
+    public static final String API_VERSION = "2.8.1";
+
+    @SuppressWarnings("unused")
     public static final String RECORD_VALIDATE = "/records/validate";
     public static final String DOSSIERS_GET = "/dossiers";
     public static final String DOSSIER_CREATE = "/dossiers";
@@ -26,6 +29,10 @@ public class APIConstants {
     public static final String HOOK_GET = "/hooks/%s";
     public static final String HOOK_DELETE = "/hooks/%s";
     public static final String HOOK_PUT = "/hooks/%s";
+    public static final String PUBLIC_KEYS_GET = "/publickeys";
+    public static final String PUBLIC_KEY_CREATE = "/publickeys";
+    public static final String PUBLIC_KEY_GET = "/publickeys/%s";
+    public static final String PUBLIC_KEY_ALGORITHM = "/publickeys/algorithms";
 
     @SuppressWarnings("unused")
     public static final List<String> MessageTypes = List.of(
@@ -40,7 +47,7 @@ public class APIConstants {
             "LoondienstInkomstenBericht",
             "ModelmatigeWaardebepalingBericht",
             "ObjectBericht",
-            "OntslagHoofdelijkeAansprakelijkheidBericht",
+            "OntslagHoofdelijkeAansprakelijkheid",
             "PensioenOverzichtBericht",
             "StudieLeningBericht",
             "TaxatieBericht",
