@@ -27,12 +27,8 @@ public class PublicKeyList extends APIObject {
      * The node of the list of publickeys to retrieve
      */
     private String node = null;
-    /**
-     * The node on behalf of which the request is made
-     */
-    private String onBehalfOf = null;
 
-    private void validateOnBehalfOf() throws InvalidParameterException {
+    private void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
         if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
             logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
             throw new InvalidParameterException("onBehalfOf is required");
@@ -49,8 +45,8 @@ public class PublicKeyList extends APIObject {
      * @throws JSONException        thrown when an error occurs in parsing the JSON
      */
     @SuppressWarnings("unused,UnusedReturnValue")
-    public PublicKeyList get() throws IOException, URISyntaxException, InterruptedException, JSONException {
-        validateOnBehalfOf();
+    public PublicKeyList get(String onBehalfOf) throws IOException, URISyntaxException, InterruptedException, JSONException {
+        validateOnBehalfOf(onBehalfOf);
 
         try {
             publickeys.clear();
@@ -69,7 +65,6 @@ public class PublicKeyList extends APIObject {
                     JSONArray records = apiResponse.getBody().getJSONObject("data").getJSONArray("publickeys");
                     for (Object apiRecord : records) {
                         PublicKey tmp = new PublicKey(((JSONObject) apiRecord).getString("resourceUuid"));
-                        tmp.setOnBehalfOf(onBehalfOf);
                         this.publickeys.add(tmp);
                     }
 
@@ -186,11 +181,6 @@ public class PublicKeyList extends APIObject {
     @SuppressWarnings("unused")
     public PublicKeyList setNode(String node) {
         this.node = node;
-        return this;
-    }
-
-    public PublicKeyList setOnBehalfOf(String node) {
-        this.onBehalfOf = node;
         return this;
     }
 }

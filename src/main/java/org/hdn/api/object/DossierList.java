@@ -53,11 +53,6 @@ public class DossierList extends APIObject {
     private String originalNodes = null;
 
     /**
-     * The node on behalf of which the request is made
-     */
-    private String onBehalfOf = null;
-
-    /**
      * Retrieves all dossiers based on the parameters and filter provided
      *
      * @return the DossierList object itself
@@ -66,7 +61,7 @@ public class DossierList extends APIObject {
      * @throws InterruptedException thrown when an interrupted error occurs
      */
     @SuppressWarnings("unused,UnusedReturnValue")
-    public DossierList get() throws IOException, URISyntaxException, InterruptedException {
+    public DossierList get(String onBehalfOf) throws IOException, URISyntaxException, InterruptedException {
         try {
             dossiers.clear();
             Integer total = 0;
@@ -83,7 +78,6 @@ public class DossierList extends APIObject {
                     JSONArray dossierList = apiResponse.getBody().getJSONObject("data").getJSONArray("dossiers");
                     for (Object dossier : dossierList) {
                         Dossier tmp = new Dossier(((JSONObject) dossier).getString(APIConstants.RESOURCE_UUID));
-                        tmp.setOnBehalfOf(onBehalfOf);
                         this.dossiers.add(tmp);
                     }
 
@@ -240,11 +234,6 @@ public class DossierList extends APIObject {
     @SuppressWarnings("unused")
     public DossierList setOriginalNodes(String originalNodes) {
         this.originalNodes = originalNodes;
-        return this;
-    }
-
-    public DossierList setOnBehalfOf(String node) {
-        this.onBehalfOf = node;
         return this;
     }
 }

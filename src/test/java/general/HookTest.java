@@ -40,15 +40,14 @@ class HookTest {
                 APIController.init(props.getProperty("baseURL"), props.getProperty("authURL"), props.getProperty("clientID"), props.getProperty("clientSecret"), props.getProperty("certificate"), props.getProperty("password"));
 
             APIController.getInstance().getToken();
-            new RecordList().setStatus("new").get().confirmAllRecords();
-            new RecordList().setStatus("read").get().confirmAllRecords();
+            new RecordList().setStatus("new").get(props.getProperty("senderNode")).confirmAllRecords(props.getProperty("senderNode"));
+            new RecordList().setStatus("read").get(props.getProperty("senderNode")).confirmAllRecords(props.getProperty("senderNode"));
             new HookList()
-                    .setOnBehalfOf(props.getProperty("senderNode"))
-                    .get()
+                    .get(props.getProperty("senderNode"))
                     .getHooks()
                     .forEach(hook -> {
                         try {
-                            hook.delete();
+                            hook.delete(props.getProperty("senderNode"));
                         } catch (IOException | InterruptedException e) {
                             throw new RuntimeException(e);
                         }
@@ -65,10 +64,9 @@ class HookTest {
         Hook hook = new Hook();
         try {
             APIResponse apiResponse = hook.setUrl("https://hdna.redbluetechnologies.com")
-                    .setOnBehalfOf(props.getProperty("senderNode"))
                     .setNodes(new String[]{props.getProperty("senderNode")})
                     .setAuthenticationMethod("none")
-                    .create();
+                    .create(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
             logger.info("Hook created with resource uuid {}", hook.getResourceUuid());
         } catch (IOException | InterruptedException e) {
@@ -82,8 +80,7 @@ class HookTest {
         APIController.getInstance().getToken();
         try {
             List<Hook> hooks = new HookList()
-                    .setOnBehalfOf(props.getProperty("senderNode"))
-                    .get()
+                    .get(props.getProperty("senderNode"))
                     .getHooks();
             assertThat(hooks).hasSize(1);
             assertThat(hooks.getFirst().getUrl()).isEqualTo("https://hdna.redbluetechnologies.com");
@@ -100,11 +97,10 @@ class HookTest {
     void updateHook() {
         try {
             Hook hook = new HookList()
-                    .setOnBehalfOf(props.getProperty("senderNode"))
-                    .get()
+                    .get(props.getProperty("senderNode"))
                     .getHooks()
                     .getFirst();
-            APIResponse apiResponse = hook.setUrl("https://hdn.redbluetechnologies.com").update();
+            APIResponse apiResponse = hook.setUrl("https://hdn.redbluetechnologies.com").update(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(200);
             assertThat(hook.getUrl()).isEqualTo("https://hdn.redbluetechnologies.com");
         } catch (IOException | URISyntaxException | InterruptedException e) {
@@ -119,7 +115,7 @@ class HookTest {
         try {
             APIController.getInstance().getToken();
             Dossier dossier = new Dossier();
-            APIResponse apiResponse = dossier.setOnBehalfOf(props.getProperty("senderNode")).create();
+            APIResponse apiResponse = dossier.create(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
             logger.info("Dossier created with UUID {}", dossier.getResourceUuid());
 
@@ -183,17 +179,17 @@ class HookTest {
                             \t</Product>
                             </BronAanvraagBericht>""")
                     .signMessage();
-            apiResponse = apiRecord.setOnBehalfOf(props.getProperty("senderNode")).create();
+            apiResponse = apiRecord.create(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
             logger.info("Record created with UUID {}", apiRecord.getResourceUuid());
 
-            apiResponse = apiRecord.send();
+            apiResponse = apiRecord.send(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(200);
 
-            List<org.hdn.api.object.Record> records = new RecordList().setStatus("new").setMessageType("ValidatieMelding").setSort("-creationDate").waitForMessage(10, 5000);
+            List<org.hdn.api.object.Record> records = new RecordList().setStatus("new").setMessageType("ValidatieMelding").setSort("-creationDate").waitForMessage(10, 5000, props.getProperty("senderNode"));
             assertThat(records).isNotNull();
 
-            Record responseRecord = records.getFirst().fetch();
+            Record responseRecord = records.getFirst().fetch(props.getProperty("senderNode"));
             assertThat(responseRecord).isNotNull();
             logger.info("Record found with resource UUID {} and dossier UUID {}", responseRecord.getResourceUuid(), responseRecord.getDossierUuid());
 
@@ -216,7 +212,7 @@ class HookTest {
             assertThat(hookData.getString("notification_recipient")).isEqualTo(props.getProperty("senderNode"));
             assertThat(hookData.getJSONObject("link").getString("href")).contains("/" + responseRecord.getDossierUuid() + "/records/" + responseRecord.getResourceUuid());
 
-            apiResponse = responseRecord.confirm();
+            apiResponse = responseRecord.confirm(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(200);
         } catch (UnrecoverableKeyException | CertificateException | IOException | KeyStoreException |
                  NoSuchAlgorithmException | SignatureException | InvalidKeyException | InterruptedException |
@@ -229,8 +225,8 @@ class HookTest {
     @Order(5)
     void deleteHook() {
         try {
-            Hook hook = new HookList().setOnBehalfOf(props.getProperty("senderNode")).get().getHooks().getFirst();
-            APIResponse apiResponse = hook.delete();
+            Hook hook = new HookList().get(props.getProperty("senderNode")).getHooks().getFirst();
+            APIResponse apiResponse = hook.delete(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(204);
         } catch (IOException | URISyntaxException | InterruptedException e) {
             throw new RuntimeException(e);

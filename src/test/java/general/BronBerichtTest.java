@@ -43,8 +43,8 @@ class BronBerichtTest {
                 APIController.init(props.getProperty("baseURL"), props.getProperty("authURL"), props.getProperty("clientID"), props.getProperty("clientSecret"), props.getProperty("certificate"), props.getProperty("password"));
 
             APIController.getInstance().getToken();
-            new RecordList().setOnBehalfOf(props.getProperty("senderNode")).setStatus("new").get().confirmAllRecords();
-            new RecordList().setOnBehalfOf(props.getProperty("senderNode")).setStatus("read").get().confirmAllRecords();
+            new RecordList().setStatus("new").get(props.getProperty("senderNode")).confirmAllRecords(props.getProperty("senderNode"));
+            new RecordList().setStatus("read").get(props.getProperty("senderNode")).confirmAllRecords(props.getProperty("senderNode"));
         } catch (IOException | URISyntaxException | InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -57,7 +57,7 @@ class BronBerichtTest {
         try {
             APIController.getInstance().getToken();
             Dossier dossier = new Dossier();
-            APIResponse apiResponse = dossier.setOnBehalfOf(props.getProperty("senderNode")).create();
+            APIResponse apiResponse = dossier.create(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
             logger.info("Dossier created with UUID {}", dossier.getResourceUuid());
 
@@ -121,11 +121,11 @@ class BronBerichtTest {
                             \t</Product>
                             </BronAanvraagBericht>""")
                     .signMessage();
-            apiResponse = apiRecord.setOnBehalfOf(props.getProperty("senderNode")).create();
+            apiResponse = apiRecord.create(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
             logger.info("Record created with UUID {}", apiRecord.getResourceUuid());
 
-            apiResponse = apiRecord.send();
+            apiResponse = apiRecord.send(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(200);
         } catch (UnrecoverableKeyException | CertificateException | IOException | KeyStoreException |
                  NoSuchAlgorithmException | SignatureException | InvalidKeyException | InterruptedException e) {
@@ -139,10 +139,10 @@ class BronBerichtTest {
         logger.info("Read BRP Ockto 25 request");
         try {
             APIController.getInstance().getToken();
-            List<Record> records = new RecordList().setStatus("new").setMessageType("ValidatieMelding").setSort("-creationDate").waitForMessage(10, 5000);
+            List<Record> records = new RecordList().setStatus("new").setMessageType("ValidatieMelding").setSort("-creationDate").waitForMessage(10, 5000, props.getProperty("senderNode"));
             assertThat(records).isNotNull();
 
-            Record responseRecord = records.getFirst().setOnBehalfOf(props.getProperty("senderNode")).fetch();
+            Record responseRecord = records.getFirst().fetch(props.getProperty("senderNode"));
             assertThat(responseRecord).isNotNull();
             logger.info("Record found with UUID {}", responseRecord.getResourceUuid());
 
@@ -154,7 +154,7 @@ class BronBerichtTest {
             assertThat(xpath.compile("ValidatieMelding/SysteemMelding/MeldingSoort/text()").evaluate(doc, XPathConstants.STRING)).isEqualTo("99 Specifieke melding");
             assertThat(xpath.compile("ValidatieMelding/SysteemMelding/MeldingSpecifiek/text()").evaluate(doc, XPathConstants.STRING)).isEqualTo("Consent for consumer data has expired");
 
-            APIResponse apiResponse = responseRecord.confirm();
+            APIResponse apiResponse = responseRecord.confirm(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(200);
         } catch (InterruptedException | URISyntaxException | XPathExpressionException | ParserConfigurationException |
                  SAXException | IOException e) {
