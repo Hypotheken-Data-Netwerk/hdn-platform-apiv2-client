@@ -23,10 +23,6 @@ public class Dossier extends APIObject {
     private Instant creationDate;
     private RecordList recordList;
     private EventList eventList;
-    /**
-     * The node on behalf of which the request is made
-     */
-    private String onBehalfOf = null;
 
     /**
      * Construct a new dossier
@@ -63,7 +59,7 @@ public class Dossier extends APIObject {
         eventList = new EventList(resourceUuid);
     }
 
-    private void validateOnBehalfOf() throws InvalidParameterException {
+    private void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
         if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
             logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
             throw new InvalidParameterException("onBehalfOf is required");
@@ -78,10 +74,10 @@ public class Dossier extends APIObject {
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused")
-    public APIResponse create() throws IOException, InterruptedException {
+    public APIResponse create(String onBehalfOf) throws IOException, InterruptedException {
         // If the resource is not created
         if (resourceUuid == null) {
-            validateOnBehalfOf();
+            validateOnBehalfOf(onBehalfOf);
 
             // Process the post call
             APIResponse apiResponse = APIController.getInstance().post(APIConstants.DOSSIER_CREATE, onBehalfOf);
@@ -108,9 +104,9 @@ public class Dossier extends APIObject {
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused")
-    public Dossier fetch() throws IOException, InterruptedException {
+    public Dossier fetch(String onBehalfOf) throws IOException, InterruptedException {
         if (resourceUuid != null) {
-            validateOnBehalfOf();
+            validateOnBehalfOf(onBehalfOf);
 
             // Process the get call
             APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.DOSSIER_GET, resourceUuid), onBehalfOf);
@@ -137,9 +133,9 @@ public class Dossier extends APIObject {
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused")
-    public Dossier addNode(String node) throws IOException, InterruptedException {
+    public Dossier addNode(String node, String onBehalfOf) throws IOException, InterruptedException {
         if (resourceUuid != null) {
-            validateOnBehalfOf();
+            validateOnBehalfOf(onBehalfOf);
 
             JSONObject body = new JSONObject();
             body.put("node", node);
@@ -260,10 +256,5 @@ public class Dossier extends APIObject {
     public String getRequestTraceNr() {
         logger.info("Use of requestTraceNr is deprecated.");
         return requestTraceNr;
-    }
-
-    public Dossier setOnBehalfOf(String node) {
-        this.onBehalfOf = node;
-        return this;
     }
 }

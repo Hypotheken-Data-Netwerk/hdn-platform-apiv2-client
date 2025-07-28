@@ -38,11 +38,6 @@ public class HookList extends APIObject {
     private String messageTypes = null;
 
     /**
-     * The node on behalf of which the request is made
-     */
-    private String onBehalfOf = null;
-
-    /**
      * Retrieves all hooks based on the parameters and filter provided
      *
      * @return the HookList object itself
@@ -52,7 +47,7 @@ public class HookList extends APIObject {
      * @throws JSONException        thrown when an error occurs in parsing the JSON
      */
     @SuppressWarnings("unused,UnusedReturnValue")
-    public HookList get() throws IOException, URISyntaxException, InterruptedException, JSONException {
+    public HookList get(String onBehalfOf) throws IOException, URISyntaxException, InterruptedException, JSONException {
         if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
             logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
             throw new InvalidParameterException("OnBehalfOf is required");
@@ -75,7 +70,6 @@ public class HookList extends APIObject {
                     JSONArray records = apiResponse.getBody().getJSONObject("data").getJSONArray("hooks");
                     for (Object apiRecord : records) {
                         Hook tmp = new Hook(((JSONObject) apiRecord).getString("resourceUuid"), apiRecord.toString());
-                        tmp.setOnBehalfOf(onBehalfOf);
                         this.hooks.add(tmp);
                     }
 
@@ -194,11 +188,6 @@ public class HookList extends APIObject {
     @SuppressWarnings("unused")
     public HookList setMessageTypes(String messageTypes) {
         this.messageTypes = messageTypes;
-        return this;
-    }
-
-    public HookList setOnBehalfOf(String node) {
-        this.onBehalfOf = node;
         return this;
     }
 }

@@ -63,10 +63,6 @@ public class RecordList extends APIObject {
      * The sortation of the records
      */
     private String sort = null;
-    /**
-     * The node on behalf of which the request is made
-     */
-    private String onBehalfOf = null;
 
     /**
      * Constructs a new record list object
@@ -96,7 +92,7 @@ public class RecordList extends APIObject {
      * @throws JSONException        thrown when an error occurs in parsing the JSON
      */
     @SuppressWarnings("unused,UnusedReturnValue")
-    public RecordList get() throws IOException, URISyntaxException, InterruptedException, JSONException {
+    public RecordList get(String onBehalfOf) throws IOException, URISyntaxException, InterruptedException, JSONException {
         try {
             records.clear();
             Integer total = 0;
@@ -305,12 +301,12 @@ public class RecordList extends APIObject {
      * Confirms all filtered records
      */
     @SuppressWarnings("unused")
-    public void confirmAllRecords() {
+    public void confirmAllRecords(String onBehalfOf) {
         getRecords().forEach(r -> {
             try {
                 logger.info("Confirming record with UUID: {}", r.getResourceUuid());
-                r.setOnBehalfOf(onBehalfOf).fetch();
-                r.setOnBehalfOf(onBehalfOf).confirm();
+                r.fetch(onBehalfOf);
+                r.confirm(onBehalfOf);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } catch (InterruptedException e) {
@@ -331,10 +327,10 @@ public class RecordList extends APIObject {
      * @throws InterruptedException thrown when an interrupted error occurs
      */
     @SuppressWarnings("unused")
-    public List<Record> waitForMessage(int maxRetries, int waitTime) throws IOException, URISyntaxException, InterruptedException {
+    public List<Record> waitForMessage(int maxRetries, int waitTime, String onBehalfOf) throws IOException, URISyntaxException, InterruptedException {
         int retryCounter = 0;
         while (retryCounter <= maxRetries) {
-            List<Record> responseRecords = get().getRecords();
+            List<Record> responseRecords = get(onBehalfOf).getRecords();
             if (responseRecords.isEmpty()) {
                 logger.info("Message not found");
                 retryCounter++;
@@ -348,10 +344,5 @@ public class RecordList extends APIObject {
         }
         logger.info("Max retries reached");
         return List.of();
-    }
-
-    public RecordList setOnBehalfOf(String node) {
-        this.onBehalfOf = node;
-        return this;
     }
 }

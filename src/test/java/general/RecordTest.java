@@ -40,7 +40,7 @@ class RecordTest {
         try {
             APIController.getInstance().getToken();
             Dossier dossier = new Dossier();
-            APIResponse apiResponse = dossier.setOnBehalfOf(props.getProperty("senderNode")).create();
+            APIResponse apiResponse = dossier.create(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
             logger.info("Dossier created with UUID {}", dossier.getResourceUuid());
 
@@ -228,11 +228,11 @@ class RecordTest {
                             	</Lening>
                             </OfferteAanvraag>""")
                     .signMessage();
-            apiResponse = apiRecord.setOnBehalfOf(props.getProperty("senderNode")).create();
+            apiResponse = apiRecord.create(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
             logger.info("Record created with UUID {}", apiRecord.getResourceUuid());
 
-            apiResponse = apiRecord.send();
+            apiResponse = apiRecord.send(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(200);
         } catch (IOException | InterruptedException | UnrecoverableKeyException | CertificateException |
                  KeyStoreException | NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {

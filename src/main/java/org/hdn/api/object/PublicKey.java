@@ -14,10 +14,6 @@ public class PublicKey extends APIObject {
     private String algorithm;
     private String publicKeyValue;
     private String sub;
-    /**
-     * The node on behalf of which the request is made
-     */
-    private String onBehalfOf = null;
 
     public PublicKey() {
 
@@ -58,16 +54,16 @@ public class PublicKey extends APIObject {
         sub = attributes.getString("sub");
     }
 
-    private void validateOnBehalfOf() throws InvalidParameterException {
+    private void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
         if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
             logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
             throw new InvalidParameterException("onBehalfOf is required");
         }
     }
 
-    public APIResponse create() throws IOException, InterruptedException {
+    public APIResponse create(String onBehalfOf) throws IOException, InterruptedException {
         if (this.resourceUuid == null) {
-            validateOnBehalfOf();
+            validateOnBehalfOf(onBehalfOf);
 
             JSONObject data = new JSONObject();
             data.put("algorithm", algorithm);
@@ -95,8 +91,8 @@ public class PublicKey extends APIObject {
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused")
-    public PublicKey fetch() throws IOException, InterruptedException {
-        validateOnBehalfOf();
+    public PublicKey fetch(String onBehalfOf) throws IOException, InterruptedException {
+        validateOnBehalfOf(onBehalfOf);
 
         APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.PUBLIC_KEY_GET, resourceUuid), onBehalfOf);
 
@@ -146,10 +142,5 @@ public class PublicKey extends APIObject {
     @SuppressWarnings("unused")
     public String getSub() {
         return sub;
-    }
-
-    public PublicKey setOnBehalfOf(String node) {
-        this.onBehalfOf = node;
-        return this;
     }
 }

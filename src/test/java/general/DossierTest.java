@@ -34,7 +34,7 @@ class DossierTest {
         try {
             APIController.getInstance().getToken();
             Dossier dossier = new Dossier();
-            APIResponse apiResponse = dossier.setOnBehalfOf(props.getProperty("senderNode")).create();
+            APIResponse apiResponse = dossier.create(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
             logger.info("Dossier created with UUID {}", dossier.getResourceUuid());
         } catch (IOException | InterruptedException e) {

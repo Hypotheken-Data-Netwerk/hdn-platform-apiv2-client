@@ -30,11 +30,6 @@ public class Hook extends APIObject {
     private static final String FIELD_SUB = "sub";
     private static final String FIELD_CREATIONDATE = "creationDate";
 
-    /**
-     * The node on behalf of which the request is made
-     */
-    private String onBehalfOf = null;
-
     public Hook() {
 
     }
@@ -77,16 +72,16 @@ public class Hook extends APIObject {
         creationDate = Instant.parse(attributes.getString(FIELD_CREATIONDATE));
     }
 
-    private void validateOnBehalfOf() throws InvalidParameterException {
+    private void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
         if (onBehalfOf == null || !onBehalfOf.matches("\\d{6}")) {
             logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
             throw new InvalidParameterException("onBehalfOf is required");
         }
     }
 
-    public APIResponse create() throws IOException, InterruptedException {
+    public APIResponse create(String onBehalfOf) throws IOException, InterruptedException {
         if (this.resourceUuid == null) {
-            validateOnBehalfOf();
+            validateOnBehalfOf(onBehalfOf);
 
             JSONObject body = new JSONObject();
             body.put(FIELD_URL, url);
@@ -106,9 +101,9 @@ public class Hook extends APIObject {
         return null;
     }
 
-    public APIResponse update() throws IOException, InterruptedException {
+    public APIResponse update(String onBehalfOf) throws IOException, InterruptedException {
         if (this.resourceUuid != null) {
-            validateOnBehalfOf();
+            validateOnBehalfOf(onBehalfOf);
 
             JSONObject body = new JSONObject();
             body.put(FIELD_URL, url);
@@ -136,8 +131,8 @@ public class Hook extends APIObject {
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused")
-    public Hook fetch() throws IOException, InterruptedException {
-        validateOnBehalfOf();
+    public Hook fetch(String onBehalfOf) throws IOException, InterruptedException {
+        validateOnBehalfOf(onBehalfOf);
 
         APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.HOOK_GET, resourceUuid), onBehalfOf);
 
@@ -147,8 +142,8 @@ public class Hook extends APIObject {
         return this;
     }
 
-    public APIResponse delete() throws IOException, InterruptedException {
-        validateOnBehalfOf();
+    public APIResponse delete(String onBehalfOf) throws IOException, InterruptedException {
+        validateOnBehalfOf(onBehalfOf);
 
         logger.info("Deleting hook with resource uuid {}", resourceUuid);
         APIResponse apiResponse = APIController.getInstance().delete(String.format(APIConstants.HOOK_DELETE, resourceUuid), onBehalfOf);
@@ -263,11 +258,6 @@ public class Hook extends APIObject {
 
     public Hook setUrl(String url) {
         this.url = url;
-        return this;
-    }
-
-    public Hook setOnBehalfOf(String node) {
-        this.onBehalfOf = node;
         return this;
     }
 }

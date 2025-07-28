@@ -55,7 +55,7 @@ class PublicKeyTest {
     void getPublicKeys() {
         try {
             APIController.getInstance().getToken();
-            List<PublicKey> publickeys = new PublicKeyList().setOnBehalfOf(props.getProperty("senderNode")).get().getPublicKeys();
+            List<PublicKey> publickeys = new PublicKeyList().get(props.getProperty("senderNode")).getPublicKeys();
             assertThat(publickeys).hasSizeGreaterThan(1);
         } catch (IOException | InterruptedException | URISyntaxException e) {
             throw new RuntimeException(e);
@@ -82,8 +82,7 @@ class PublicKeyTest {
             PublicKey pk = new PublicKey();
             APIResponse apiResponse = pk.setAlgorithm(algorithm)
                     .setPublicKeyValue(publickey)
-                    .setOnBehalfOf(props.getProperty("senderNode"))
-                    .create();
+                    .create(props.getProperty("senderNode"));
             resourceUuid = pk.getResourceUuid();
 
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
@@ -102,7 +101,7 @@ class PublicKeyTest {
             APIController.getInstance().getToken();
 
             PublicKey pk = new PublicKey(resourceUuid);
-            pk.setOnBehalfOf(props.getProperty("senderNode")).fetch();
+            pk.fetch(props.getProperty("senderNode"));
 
             assertThat(pk.getAlgorithm()).isEqualTo(algorithm);
             assertThat(pk.getNode()).isEqualTo(props.getProperty("senderNode"));

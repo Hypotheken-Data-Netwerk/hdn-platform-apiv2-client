@@ -187,11 +187,6 @@ public class Record extends APIObject {
     private EventList eventList;
 
     /**
-     * The node on behalf of which the request is made
-     */
-    private String onBehalfOf = null;
-
-    /**
      * Construct a new record
      *
      * @param dossierUuid the UUID of the dossier that will contain this record
@@ -275,7 +270,7 @@ public class Record extends APIObject {
         eventList = new EventList(dossierUuid, resourceUuid);
     }
 
-    private void validateOnBehalfOf() throws InvalidParameterException {
+    private void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
         if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
             logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
             throw new InvalidParameterException("onBehalfOf is required");
@@ -350,8 +345,8 @@ public class Record extends APIObject {
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused,UnusedReturnValue")
-    public Record fetch() throws IOException, InterruptedException {
-        validateOnBehalfOf();
+    public Record fetch(String onBehalfOf) throws IOException, InterruptedException {
+        validateOnBehalfOf(onBehalfOf);
         APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.DOSSIER_GET_RECORD, dossierUuid, resourceUuid), onBehalfOf);
 
         if (apiResponse.getResponse().statusCode() == 200) {
@@ -374,9 +369,9 @@ public class Record extends APIObject {
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused")
-    public APIResponse create() throws IOException, InterruptedException {
+    public APIResponse create(String onBehalfOf) throws IOException, InterruptedException {
         if (resourceUuid == null) {
-            validateOnBehalfOf();
+            validateOnBehalfOf(onBehalfOf);
 
             JSONObject body = new JSONObject();
             JSONArray responseSchemas = new JSONArray();
@@ -448,9 +443,9 @@ public class Record extends APIObject {
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused")
-    public APIResponse send() throws IOException, InterruptedException {
+    public APIResponse send(String onBehalfOf) throws IOException, InterruptedException {
         if (resourceUuid != null) {
-            validateOnBehalfOf();
+            validateOnBehalfOf(onBehalfOf);
             return APIController.getInstance().post(String.format(APIConstants.DOSSIER_SEND_RECORD, dossierUuid, resourceUuid), null, onBehalfOf);
         }
         logger.error("Couldn't send record, because record is not created yet!");
@@ -488,9 +483,9 @@ public class Record extends APIObject {
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused,UnusedReturnValue")
-    public APIResponse confirm() throws IOException, InterruptedException {
+    public APIResponse confirm(String onBehalfOf) throws IOException, InterruptedException {
         if (resourceUuid != null) {
-            validateOnBehalfOf();
+            validateOnBehalfOf(onBehalfOf);
             return APIController.getInstance().post(String.format(APIConstants.DOSSIER_CONFIRM_RECORD, dossierUuid, resourceUuid), onBehalfOf);
         }
         logger.error("Couldn't confirm record, because record is not created yet!");
@@ -600,9 +595,4 @@ public class Record extends APIObject {
      * @return the dossier uuid
      */
     public String getDossierUuid() { return dossierUuid; }
-
-    public Record setOnBehalfOf(String node) {
-        this.onBehalfOf = node;
-        return this;
-    }
 }
