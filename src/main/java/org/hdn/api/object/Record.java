@@ -18,6 +18,14 @@ import java.util.List;
  * Represents a record object on the HDN Platform Of Trust
  */
 public class Record extends APIObject {
+    private static final String FIELD_VALUE = "value";
+    private static final String FIELD_MESSAGE = "message";
+    private static final String FIELD_SIGNATURE = "signature";
+    private static final String FIELD_HEADER = "header";
+    private static final String FIELD_MESSAGE_TYPE = "messageType";
+    private static final String FIELD_SCHEMA_VERSION = "schemaVersion";
+    private static final String FIELD_RECEIVER_CODE = "receiverCode";
+    private static final String FIELD_CONTENT_TYPE = "contentType";
     /**
      * The ExternalSource is used in a BronAanvraagBericht
      *
@@ -79,7 +87,7 @@ public class Record extends APIObject {
      */
     public record Header(
             String requestVersion,
-            @Deprecated String requestTraceNr,
+            @Deprecated(since = "2.9.0", forRemoval = true) String requestTraceNr,
             String sender,
             String receiver,
             RequestSchema requestSchema,
@@ -179,6 +187,11 @@ public class Record extends APIObject {
     private EventList eventList;
 
     /**
+     * The node on behalf of which the request is made
+     */
+    private String onBehalfOf = null;
+
+    /**
      * Construct a new record
      *
      * @param dossierUuid the UUID of the dossier that will contain this record
@@ -220,33 +233,33 @@ public class Record extends APIObject {
      * @param attributes a collection of attributes returned by the platform
      */
     private void updateAttributes(JSONObject attributes) {
-        JSONObject header = attributes.getJSONObject("header");
-        JSONObject requestSchema = header.getJSONObject("requestSchema");
-        JSONObject responseSchema = header.optJSONObject("responseSchema");
-        JSONObject externalSource = header.optJSONObject("externalSource");
+        JSONObject headerObject = attributes.getJSONObject(FIELD_HEADER);
+        JSONObject requestSchema = headerObject.getJSONObject("requestSchema");
+        JSONObject responseSchema = headerObject.optJSONObject("responseSchema");
+        JSONObject externalSource = headerObject.optJSONObject("externalSource");
         JSONObject misc = attributes.getJSONObject("miscellaneous");
         JSONObject sa = misc.getJSONObject("sendingApplication");
-        JSONObject status = attributes.getJSONObject("status");
+        JSONObject statusObject = attributes.getJSONObject("status");
 
         sub = attributes.getString("sub");
         this.miscellaneous = new Miscellaneous(misc.getString("senderName"), misc.getString("receiverName"), new SendingApplication(sa.getString("applicationName"), sa.getString("applicationVersion"), Instant.parse(sa.getString("sendingDateTime"))));
-        this.header = new Header(
-                header.getString("requestVersion"),
-                header.getString("requestTraceNr"),
-                header.getString("sender"),
-                header.getString("receiver"),
+        header = new Header(
+                headerObject.getString("requestVersion"),
+                headerObject.getString("requestTraceNr"),
+                headerObject.getString("sender"),
+                headerObject.getString("receiver"),
                 new RequestSchema(
-                        requestSchema.getString("messageType"),
-                        requestSchema.getString("schemaVersion"),
-                        requestSchema.getString("receiverCode"),
-                        APIConstants.ContentType.valueOf(requestSchema.getString("contentType")),
+                        requestSchema.getString(FIELD_MESSAGE_TYPE),
+                        requestSchema.getString(FIELD_SCHEMA_VERSION),
+                        requestSchema.getString(FIELD_RECEIVER_CODE),
+                        APIConstants.ContentType.valueOf(requestSchema.getString(FIELD_CONTENT_TYPE)),
                         APIConstants.Environment.valueOf(requestSchema.getString("environment"))
                 ),
                 responseSchema != null ? List.of(new ResponseSchema(
-                        responseSchema.getString("messageType"),
-                        responseSchema.getString("receiverCode"),
-                        responseSchema.getString("schemaVersion"),
-                        APIConstants.ContentType.valueOf(requestSchema.getString("contentType"))
+                        responseSchema.getString(FIELD_MESSAGE_TYPE),
+                        responseSchema.getString(FIELD_RECEIVER_CODE),
+                        responseSchema.getString(FIELD_SCHEMA_VERSION),
+                        APIConstants.ContentType.valueOf(requestSchema.getString(FIELD_CONTENT_TYPE))
                 )) : List.of(),
                 externalSource != null ? new ExternalSource(
                         externalSource.getString("document"),
@@ -257,9 +270,16 @@ public class Record extends APIObject {
         creationDate = Instant.parse(attributes.getString("creationDate"));
         resourceUuid = attributes.getString("resourceUuid");
         parentRecord = attributes.optString("parentRecord");
-        this.status = new Status(status.getString("value"), Instant.parse(status.getString("modifiedTimestamp")));
+        status = new Status(statusObject.getString(FIELD_VALUE), Instant.parse(statusObject.getString("modifiedTimestamp")));
         dossierUuid = attributes.getString("dossierUuid");
         eventList = new EventList(dossierUuid, resourceUuid);
+    }
+
+    private void validateOnBehalfOf() throws InvalidParameterException {
+        if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
+            logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
+            throw new InvalidParameterException("onBehalfOf is required");
+        }
     }
 
     /**
@@ -331,15 +351,16 @@ public class Record extends APIObject {
      */
     @SuppressWarnings("unused,UnusedReturnValue")
     public Record fetch() throws IOException, InterruptedException {
-        APIResponse APIResponse = APIController.getInstance().get(String.format(APIConstants.DOSSIER_GET_RECORD, dossierUuid, resourceUuid));
+        validateOnBehalfOf();
+        APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.DOSSIER_GET_RECORD, dossierUuid, resourceUuid), onBehalfOf);
 
-        if (APIResponse.getResponse().statusCode() == 200) {
-            updateAttributes(APIResponse.getBody());
+        if (apiResponse.getResponse().statusCode() == 200) {
+            updateAttributes(apiResponse.getBody());
 
-            message = new String(Base64.getDecoder().decode(APIResponse.getBody().getJSONObject("message").getString("data")));
-            if(APIResponse.getBody().getJSONObject("message").has("signature")) {
-                publicKey = APIResponse.getBody().getJSONObject("message").getJSONObject("signature").getJSONObject("publicKey").getString("uuid");
-                messageSigned = APIResponse.getBody().getJSONObject("message").getJSONObject("signature").getString("value").getBytes();
+            message = new String(Base64.getDecoder().decode(apiResponse.getBody().getJSONObject(FIELD_MESSAGE).getString("data")));
+            if(apiResponse.getBody().getJSONObject(FIELD_MESSAGE).has(FIELD_SIGNATURE)) {
+                publicKey = apiResponse.getBody().getJSONObject(FIELD_MESSAGE).getJSONObject(FIELD_SIGNATURE).getJSONObject("publicKey").getString("uuid");
+                messageSigned = apiResponse.getBody().getJSONObject(FIELD_MESSAGE).getJSONObject(FIELD_SIGNATURE).getString(FIELD_VALUE).getBytes();
             }
         }
         return this;
@@ -355,45 +376,47 @@ public class Record extends APIObject {
     @SuppressWarnings("unused")
     public APIResponse create() throws IOException, InterruptedException {
         if (resourceUuid == null) {
+            validateOnBehalfOf();
+
             JSONObject body = new JSONObject();
             JSONArray responseSchemas = new JSONArray();
 
-            body.put("header", new JSONObject()
+            body.put(FIELD_HEADER, new JSONObject()
                     .put("receiver", header.receiver)
                     .put("requestVersion", header.requestVersion)
                     .put("requestSchema", new JSONObject()
-                            .put("messageType", header.requestSchema.messageType)
-                            .put("receiverCode", header.requestSchema.receiverCode)
-                            .put("schemaVersion", header.requestSchema.schemaVersion)
-                            .put("contentType", header.requestSchema.contentType)
+                            .put(FIELD_MESSAGE_TYPE, header.requestSchema.messageType)
+                            .put(FIELD_RECEIVER_CODE, header.requestSchema.receiverCode)
+                            .put(FIELD_SCHEMA_VERSION, header.requestSchema.schemaVersion)
+                            .put(FIELD_CONTENT_TYPE, header.requestSchema.contentType)
                             .put("environment", header.requestSchema.environment)
                     )
             );
 
             if (!header.responseSchemas.isEmpty()) {
                 header.responseSchemas.forEach(responseSchema -> responseSchemas.put(new JSONObject()
-                        .put("messageType", responseSchema.messageType)
-                        .put("receiverCode", responseSchema.receiverCode)
-                        .put("schemaVersion", responseSchema.schemaVersion)
-                        .put("contentType", responseSchema.contentType)
+                        .put(FIELD_MESSAGE_TYPE, responseSchema.messageType)
+                        .put(FIELD_RECEIVER_CODE, responseSchema.receiverCode)
+                        .put(FIELD_SCHEMA_VERSION, responseSchema.schemaVersion)
+                        .put(FIELD_CONTENT_TYPE, responseSchema.contentType)
                 ));
-                body.getJSONObject("header").put("responseSchemas", responseSchemas);
+                body.getJSONObject(FIELD_HEADER).put("responseSchemas", responseSchemas);
             }
 
             if (header.externalSource != null) {
-                body.getJSONObject("header").put("externalSource", new JSONObject()
+                body.getJSONObject(FIELD_HEADER).put("externalSource", new JSONObject()
                         .put("document", header.externalSource.document)
                         .put("provider", header.externalSource.provider)
                         .put("source", header.externalSource.source)
                 );
             }
 
-            body.put("message", new JSONObject()
+            body.put(FIELD_MESSAGE, new JSONObject()
                     .put("data", Base64.getEncoder().encodeToString(message.getBytes()))
-                    .put("signature", new JSONObject()
+                    .put(FIELD_SIGNATURE, new JSONObject()
                             .put("publicKey", new JSONObject()
                                     .put("uuid", publicKey))
-                            .put("value", Base64.getEncoder().encodeToString(messageSigned))));
+                            .put(FIELD_VALUE, Base64.getEncoder().encodeToString(messageSigned))));
 
             body.put("miscellaneous", new JSONObject()
                     .put("senderName", miscellaneous.senderName)
@@ -403,16 +426,16 @@ public class Record extends APIObject {
                             .put("applicationVersion", miscellaneous.sendingApplication.applicationVersion)
                             .put("sendingDateTime", miscellaneous.sendingApplication.sendingDateTime)));
 
-            APIResponse APIResponse = APIController.getInstance().post(String.format(APIConstants.DOSSIER_CREATE_RECORD, dossierUuid), body.toString());
+            APIResponse apiResponse = APIController.getInstance().post(String.format(APIConstants.DOSSIER_CREATE_RECORD, dossierUuid), body.toString(), onBehalfOf);
 
             // When a record is created
-            if (APIResponse.getResponse().statusCode() == 201) {
+            if (apiResponse.getResponse().statusCode() == 201) {
                 // Update the attributes
-                updateAttributes(APIResponse.getBody());
+                updateAttributes(apiResponse.getBody());
             } else {
-                logger.error(APIResponse.getResponse().body());
+                logger.error(apiResponse.getResponse().body());
             }
-            return APIResponse;
+            return apiResponse;
         }
         return null;
     }
@@ -427,7 +450,8 @@ public class Record extends APIObject {
     @SuppressWarnings("unused")
     public APIResponse send() throws IOException, InterruptedException {
         if (resourceUuid != null) {
-            return APIController.getInstance().post(String.format(APIConstants.DOSSIER_SEND_RECORD, dossierUuid, resourceUuid));
+            validateOnBehalfOf();
+            return APIController.getInstance().post(String.format(APIConstants.DOSSIER_SEND_RECORD, dossierUuid, resourceUuid), null, onBehalfOf);
         }
         logger.error("Couldn't send record, because record is not created yet!");
         return null;
@@ -466,7 +490,8 @@ public class Record extends APIObject {
     @SuppressWarnings("unused,UnusedReturnValue")
     public APIResponse confirm() throws IOException, InterruptedException {
         if (resourceUuid != null) {
-            return APIController.getInstance().post(String.format(APIConstants.DOSSIER_CONFIRM_RECORD, dossierUuid, resourceUuid));
+            validateOnBehalfOf();
+            return APIController.getInstance().post(String.format(APIConstants.DOSSIER_CONFIRM_RECORD, dossierUuid, resourceUuid), onBehalfOf);
         }
         logger.error("Couldn't confirm record, because record is not created yet!");
         return null;
@@ -575,4 +600,9 @@ public class Record extends APIObject {
      * @return the dossier uuid
      */
     public String getDossierUuid() { return dossierUuid; }
+
+    public Record setOnBehalfOf(String node) {
+        this.onBehalfOf = node;
+        return this;
+    }
 }

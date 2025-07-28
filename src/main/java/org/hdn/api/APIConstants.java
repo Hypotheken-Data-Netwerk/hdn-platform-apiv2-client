@@ -80,4 +80,11 @@ public class APIConstants {
     public enum ContentType {
         XML
     }
+
+    public static final String HEADER_AUTH = "Authorization";
+    public static final String AUTH_HEADER_PREFIX = "Bearer ";
+    public static final String HEADER_CONTENT_TYPE = "Content-Type";
+    public static final String CONTENT_TYPE_HEADER = "application/json";
+
+    public static final String RESOURCE_UUID = "resourceUuid";
 }

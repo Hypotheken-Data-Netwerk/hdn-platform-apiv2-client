@@ -7,6 +7,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.security.InvalidParameterException;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -19,6 +20,20 @@ public class Hook extends APIObject {
     private String certificateUuid;
     private String sub;
     private Instant creationDate;
+
+    private static final String FIELD_RESOURCEUUID = "resourceUuid";
+    private static final String FIELD_URL = "url";
+    private static final String FIELD_MESSAGE_TYPES = "messageTypes";
+    private static final String FIELD_NODES = "nodes";
+    private static final String FIELD_AUTHENTICATION_METHOD = "authenticationMethod";
+    private static final String FIELD_CERTIFICATEUUID = "certificateUuid";
+    private static final String FIELD_SUB = "sub";
+    private static final String FIELD_CREATIONDATE = "creationDate";
+
+    /**
+     * The node on behalf of which the request is made
+     */
+    private String onBehalfOf = null;
 
     public Hook() {
 
@@ -52,26 +67,35 @@ public class Hook extends APIObject {
      * @param attributes a collection of attributes returned by the platform
      */
     private void updateAttributes(JSONObject attributes) {
-        resourceUuid = attributes.getString("resourceUuid");
-        url = attributes.getString("url");
-        messageTypes = attributes.getJSONArray("messageTypes").toList().stream().map(Object::toString).toArray(String[]::new);
-        nodes = attributes.getJSONArray("nodes").toList().stream().map(Object::toString).toArray(String[]::new);
-        authenticationMethod = attributes.getString("authenticationMethod");
-        certificateUuid = attributes.optString("certificateUuid", null);
-        sub = attributes.getString("sub");
-        creationDate = Instant.parse(attributes.getString("creationDate"));
+        resourceUuid = attributes.getString(FIELD_RESOURCEUUID);
+        url = attributes.getString(FIELD_URL);
+        messageTypes = attributes.getJSONArray(FIELD_MESSAGE_TYPES).toList().stream().map(Object::toString).toArray(String[]::new);
+        nodes = attributes.getJSONArray(FIELD_NODES).toList().stream().map(Object::toString).toArray(String[]::new);
+        authenticationMethod = attributes.getString(FIELD_AUTHENTICATION_METHOD);
+        certificateUuid = attributes.optString(FIELD_CERTIFICATEUUID, null);
+        sub = attributes.getString(FIELD_SUB);
+        creationDate = Instant.parse(attributes.getString(FIELD_CREATIONDATE));
+    }
+
+    private void validateOnBehalfOf() throws InvalidParameterException {
+        if (onBehalfOf == null || !onBehalfOf.matches("\\d{6}")) {
+            logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
+            throw new InvalidParameterException("onBehalfOf is required");
+        }
     }
 
     public APIResponse create() throws IOException, InterruptedException {
         if (this.resourceUuid == null) {
-            JSONObject body = new JSONObject();
-            body.put("url", url);
-            body.put("messageTypes", new JSONArray(Objects.requireNonNullElse(messageTypes, new String[0])));
-            body.put("nodes", new JSONArray(nodes));
-            if (authenticationMethod != null) body.put("authenticationMethod", authenticationMethod);
-            if (certificateUuid != null) body.put("certificateUuid", certificateUuid);
+            validateOnBehalfOf();
 
-            APIResponse apiResponse = APIController.getInstance().post(String.format(APIConstants.HOOK_CREATE), body.toString());
+            JSONObject body = new JSONObject();
+            body.put(FIELD_URL, url);
+            body.put(FIELD_MESSAGE_TYPES, new JSONArray(Objects.requireNonNullElse(messageTypes, new String[0])));
+            body.put(FIELD_NODES, new JSONArray(nodes));
+            if (authenticationMethod != null) body.put(FIELD_AUTHENTICATION_METHOD, authenticationMethod);
+            if (certificateUuid != null) body.put(FIELD_CERTIFICATEUUID, certificateUuid);
+
+            APIResponse apiResponse = APIController.getInstance().post(String.format(APIConstants.HOOK_CREATE), body.toString(), onBehalfOf);
             if (apiResponse.getResponse().statusCode() == 201) {
                 updateAttributes(apiResponse.getBody());
             }
@@ -84,14 +108,16 @@ public class Hook extends APIObject {
 
     public APIResponse update() throws IOException, InterruptedException {
         if (this.resourceUuid != null) {
-            JSONObject body = new JSONObject();
-            body.put("url", url);
-            body.put("messageTypes", new JSONArray(Objects.requireNonNullElse(messageTypes, new String[0])));
-            body.put("nodes", new JSONArray(nodes));
-            if (authenticationMethod != null) body.put("authenticationMethod", authenticationMethod);
-            if (certificateUuid != null) body.put("certificateUuid", certificateUuid);
+            validateOnBehalfOf();
 
-            APIResponse apiResponse = APIController.getInstance().put(String.format(APIConstants.HOOK_PUT, this.resourceUuid), body.toString());
+            JSONObject body = new JSONObject();
+            body.put(FIELD_URL, url);
+            body.put(FIELD_MESSAGE_TYPES, new JSONArray(Objects.requireNonNullElse(messageTypes, new String[0])));
+            body.put(FIELD_NODES, new JSONArray(nodes));
+            if (authenticationMethod != null) body.put(FIELD_AUTHENTICATION_METHOD, authenticationMethod);
+            if (certificateUuid != null) body.put(FIELD_CERTIFICATEUUID, certificateUuid);
+
+            APIResponse apiResponse = APIController.getInstance().put(String.format(APIConstants.HOOK_PUT, this.resourceUuid), body.toString(), onBehalfOf);
             if (apiResponse.getResponse().statusCode() == 200) {
                 updateAttributes(apiResponse.getBody());
             }
@@ -111,7 +137,9 @@ public class Hook extends APIObject {
      */
     @SuppressWarnings("unused")
     public Hook fetch() throws IOException, InterruptedException {
-        APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.HOOK_GET, resourceUuid));
+        validateOnBehalfOf();
+
+        APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.HOOK_GET, resourceUuid), onBehalfOf);
 
         if (apiResponse.getResponse().statusCode() == 200) {
             updateAttributes(apiResponse.getBody());
@@ -120,8 +148,10 @@ public class Hook extends APIObject {
     }
 
     public APIResponse delete() throws IOException, InterruptedException {
+        validateOnBehalfOf();
+
         logger.info("Deleting hook with resource uuid {}", resourceUuid);
-        APIResponse apiResponse = APIController.getInstance().delete(String.format(APIConstants.HOOK_DELETE, resourceUuid));
+        APIResponse apiResponse = APIController.getInstance().delete(String.format(APIConstants.HOOK_DELETE, resourceUuid), onBehalfOf);
         logger.info("Resultcode was {}", apiResponse.getResponse().statusCode());
         if (apiResponse.getResponse().statusCode() == 204) {
             resourceUuid = null;
@@ -233,6 +263,11 @@ public class Hook extends APIObject {
 
     public Hook setUrl(String url) {
         this.url = url;
+        return this;
+    }
+
+    public Hook setOnBehalfOf(String node) {
+        this.onBehalfOf = node;
         return this;
     }
 }

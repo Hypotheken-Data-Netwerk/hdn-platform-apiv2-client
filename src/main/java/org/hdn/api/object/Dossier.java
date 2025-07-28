@@ -6,6 +6,7 @@ import org.hdn.api.APIResponse;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.security.InvalidParameterException;
 import java.time.Instant;
 import java.util.List;
 
@@ -22,6 +23,10 @@ public class Dossier extends APIObject {
     private Instant creationDate;
     private RecordList recordList;
     private EventList eventList;
+    /**
+     * The node on behalf of which the request is made
+     */
+    private String onBehalfOf = null;
 
     /**
      * Construct a new dossier
@@ -58,6 +63,13 @@ public class Dossier extends APIObject {
         eventList = new EventList(resourceUuid);
     }
 
+    private void validateOnBehalfOf() throws InvalidParameterException {
+        if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
+            logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
+            throw new InvalidParameterException("onBehalfOf is required");
+        }
+    }
+
     /**
      * Creates a dossier on the platform when the dossier has not been created yet
      *
@@ -69,17 +81,19 @@ public class Dossier extends APIObject {
     public APIResponse create() throws IOException, InterruptedException {
         // If the resource is not created
         if (resourceUuid == null) {
+            validateOnBehalfOf();
+
             // Process the post call
-            APIResponse APIResponse = APIController.getInstance().post(APIConstants.DOSSIER_CREATE);
+            APIResponse apiResponse = APIController.getInstance().post(APIConstants.DOSSIER_CREATE, onBehalfOf);
 
             // When a dossier is created
-            if (APIResponse.getResponse().statusCode() == 201) {
+            if (apiResponse.getResponse().statusCode() == 201) {
                 // Update the attributes
-                updateAttributes(APIResponse.getBody());
+                updateAttributes(apiResponse.getBody());
             } else {
-                logger.error("Error occured while creating a dossier: {}", APIResponse.getResponse().body());
+                logger.error("Error occured while creating a dossier: {}", apiResponse.getResponse().body());
             }
-            return APIResponse;
+            return apiResponse;
         } else {
             logger.debug("Dossier already created.");
         }
@@ -96,15 +110,17 @@ public class Dossier extends APIObject {
     @SuppressWarnings("unused")
     public Dossier fetch() throws IOException, InterruptedException {
         if (resourceUuid != null) {
+            validateOnBehalfOf();
+
             // Process the get call
-            APIResponse APIResponse = APIController.getInstance().get(String.format(APIConstants.DOSSIER_GET, resourceUuid));
+            APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.DOSSIER_GET, resourceUuid), onBehalfOf);
 
             // When the dossier is returned
-            if (APIResponse.getResponse().statusCode() == 200) {
+            if (apiResponse.getResponse().statusCode() == 200) {
                 // Update the attributes
-                updateAttributes(APIResponse.getBody());
+                updateAttributes(apiResponse.getBody());
             } else {
-                logger.error("Error occured while fetching a dossier: {}", APIResponse.getResponse().body());
+                logger.error("Error occured while fetching a dossier: {}", apiResponse.getResponse().body());
             }
         } else {
             logger.error("Cannot fetch: dossier not created yet");
@@ -123,18 +139,20 @@ public class Dossier extends APIObject {
     @SuppressWarnings("unused")
     public Dossier addNode(String node) throws IOException, InterruptedException {
         if (resourceUuid != null) {
+            validateOnBehalfOf();
+
             JSONObject body = new JSONObject();
             body.put("node", node);
 
             // Process the post call
-            APIResponse APIResponse = APIController.getInstance().post(String.format(APIConstants.DOSSIER_ADD_NODE, resourceUuid), body.toString());
+            APIResponse apiResponse = APIController.getInstance().post(String.format(APIConstants.DOSSIER_ADD_NODE, resourceUuid), body.toString(), onBehalfOf);
 
             // When a dossier is created
-            if (APIResponse.getResponse().statusCode() == 200) {
+            if (apiResponse.getResponse().statusCode() == 200) {
                 // Update the attributes
-                updateAttributes(APIResponse.getBody());
+                updateAttributes(apiResponse.getBody());
             } else {
-                logger.error("Error occured while adding a node: {}", APIResponse.getResponse().body());
+                logger.error("Error occured while adding a node: {}", apiResponse.getResponse().body());
             }
         } else {
             logger.error("Cannot add a node: dossier not created yet");
@@ -234,12 +252,18 @@ public class Dossier extends APIObject {
      * of the dossier is returned, otherwise null
      * Remark: the requestTraceNr is deprecated and will be removed.
      *
+     * @deprecated
      * @return the requestTraceNr or null
      */
-    @Deprecated
+    @Deprecated(since="2.9.0", forRemoval = true)
     @SuppressWarnings("unused")
     public String getRequestTraceNr() {
         logger.info("Use of requestTraceNr is deprecated.");
         return requestTraceNr;
+    }
+
+    public Dossier setOnBehalfOf(String node) {
+        this.onBehalfOf = node;
+        return this;
     }
 }

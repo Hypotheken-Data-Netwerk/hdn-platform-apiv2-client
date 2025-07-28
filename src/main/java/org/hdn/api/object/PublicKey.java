@@ -6,13 +6,18 @@ import org.hdn.api.APIResponse;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.security.InvalidParameterException;
 
 public class PublicKey extends APIObject {
     private String resourceUuid;
     private String node;
     private String algorithm;
-    private String publickey;
+    private String publicKeyValue;
     private String sub;
+    /**
+     * The node on behalf of which the request is made
+     */
+    private String onBehalfOf = null;
 
     public PublicKey() {
 
@@ -49,20 +54,29 @@ public class PublicKey extends APIObject {
         resourceUuid = attributes.getString("resourceUuid");
         node = attributes.getString("node");
         algorithm = attributes.getString("algorithm");
-        publickey = attributes.getString("publicKey");
+        publicKeyValue = attributes.getString("publicKey");
         sub = attributes.getString("sub");
+    }
+
+    private void validateOnBehalfOf() throws InvalidParameterException {
+        if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
+            logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
+            throw new InvalidParameterException("onBehalfOf is required");
+        }
     }
 
     public APIResponse create() throws IOException, InterruptedException {
         if (this.resourceUuid == null) {
+            validateOnBehalfOf();
+
             JSONObject data = new JSONObject();
             data.put("algorithm", algorithm);
-            data.put("publicKey", publickey);
+            data.put("publicKey", publicKeyValue);
 
             JSONObject body = new JSONObject();
             body.put("data", data);
 
-            APIResponse apiResponse = APIController.getInstance().post(String.format(APIConstants.PUBLIC_KEY_CREATE), body.toString());
+            APIResponse apiResponse = APIController.getInstance().post(String.format(APIConstants.PUBLIC_KEY_CREATE), body.toString(), onBehalfOf);
             if (apiResponse.getResponse().statusCode() == 201) {
                 updateAttributes(apiResponse.getBody());
             }
@@ -82,7 +96,9 @@ public class PublicKey extends APIObject {
      */
     @SuppressWarnings("unused")
     public PublicKey fetch() throws IOException, InterruptedException {
-        APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.PUBLIC_KEY_GET, resourceUuid));
+        validateOnBehalfOf();
+
+        APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.PUBLIC_KEY_GET, resourceUuid), onBehalfOf);
 
         if (apiResponse.getResponse().statusCode() == 200) {
             updateAttributes(apiResponse.getBody());
@@ -108,16 +124,18 @@ public class PublicKey extends APIObject {
         return algorithm;
     }
 
-    public void setAlgorithm(String algorithm) {
+    public PublicKey setAlgorithm(String algorithm) {
         this.algorithm = algorithm;
+        return this;
     }
 
-    public String getPublickey() {
-        return publickey;
+    public String getPublicKeyValue() {
+        return publicKeyValue;
     }
 
-    public void setPublickey(String publickey) {
-        this.publickey = publickey;
+    public PublicKey setPublicKeyValue(String publicKeyValue) {
+        this.publicKeyValue = publicKeyValue;
+        return this;
     }
 
     /**
@@ -128,5 +146,10 @@ public class PublicKey extends APIObject {
     @SuppressWarnings("unused")
     public String getSub() {
         return sub;
+    }
+
+    public PublicKey setOnBehalfOf(String node) {
+        this.onBehalfOf = node;
+        return this;
     }
 }

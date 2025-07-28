@@ -1,3 +1,5 @@
+package general;
+
 import org.hdn.api.APIConstants;
 import org.hdn.api.APIController;
 import org.hdn.api.APIResponse;
@@ -17,25 +19,32 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class BronBerichtTest {
+class BronBerichtTest {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
+    protected static final Properties props = new Properties();
 
     @BeforeAll
     static void setupBeforeAll() {
         try {
+            props.load(new FileInputStream("settings.properties"));
+            if (APIController.isNotInitialized())
+                APIController.init(props.getProperty("baseURL"), props.getProperty("authURL"), props.getProperty("clientID"), props.getProperty("clientSecret"), props.getProperty("certificate"), props.getProperty("password"));
+
             APIController.getInstance().getToken();
-            new RecordList().setStatus("new").get().confirmAllRecords();
-            new RecordList().setStatus("read").get().confirmAllRecords();
+            new RecordList().setOnBehalfOf(props.getProperty("senderNode")).setStatus("new").get().confirmAllRecords();
+            new RecordList().setOnBehalfOf(props.getProperty("senderNode")).setStatus("read").get().confirmAllRecords();
         } catch (IOException | URISyntaxException | InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -48,17 +57,17 @@ public class BronBerichtTest {
         try {
             APIController.getInstance().getToken();
             Dossier dossier = new Dossier();
-            APIResponse APIResponse = dossier.create();
-            assertThat(APIResponse.getResponse().statusCode()).isEqualTo(201);
+            APIResponse apiResponse = dossier.setOnBehalfOf(props.getProperty("senderNode")).create();
+            assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
             logger.info("Dossier created with UUID {}", dossier.getResourceUuid());
 
-            Record record = new Record(dossier.getResourceUuid())
+            Record apiRecord = new Record(dossier.getResourceUuid())
                     .setHeader(
                             new Record.Header(
                                     "1",
                                     dossier.getResourceUuid(),
-                                    APIController.getInstance().getProp("senderNode"),
-                                    APIController.getInstance().getProp("receiverNode"),
+                                    props.getProperty("senderNode"),
+                                    props.getProperty("receiverNode"),
                                     new Record.RequestSchema(
                                             "BronAanvraagBericht",
                                             "25.0",
@@ -90,7 +99,7 @@ public class BronBerichtTest {
                                     )
                             )
                     )
-                    .setPublicKey(APIController.getInstance().getProp("publickeyUUID")) //"f7e83467-2d36-4d9e-ac34-a27e4810210f")
+                    .setPublicKey(props.getProperty("publickeyUUID")) //"f7e83467-2d36-4d9e-ac34-a27e4810210f")
                     .setMessage("""
                             <?xml version="1.0" encoding="utf-8"?>
                             <BronAanvraagBericht>
@@ -112,12 +121,12 @@ public class BronBerichtTest {
                             \t</Product>
                             </BronAanvraagBericht>""")
                     .signMessage();
-            APIResponse = record.create();
-            assertThat(APIResponse.getResponse().statusCode()).isEqualTo(201);
-            logger.info("Record created with UUID {}", record.getResourceUuid());
+            apiResponse = apiRecord.setOnBehalfOf(props.getProperty("senderNode")).create();
+            assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
+            logger.info("Record created with UUID {}", apiRecord.getResourceUuid());
 
-            APIResponse = record.send();
-            assertThat(APIResponse.getResponse().statusCode()).isEqualTo(200);
+            apiResponse = apiRecord.send();
+            assertThat(apiResponse.getResponse().statusCode()).isEqualTo(200);
         } catch (UnrecoverableKeyException | CertificateException | IOException | KeyStoreException |
                  NoSuchAlgorithmException | SignatureException | InvalidKeyException | InterruptedException e) {
             throw new RuntimeException(e);
@@ -133,7 +142,7 @@ public class BronBerichtTest {
             List<Record> records = new RecordList().setStatus("new").setMessageType("ValidatieMelding").setSort("-creationDate").waitForMessage(10, 5000);
             assertThat(records).isNotNull();
 
-            Record responseRecord = records.getFirst().fetch();
+            Record responseRecord = records.getFirst().setOnBehalfOf(props.getProperty("senderNode")).fetch();
             assertThat(responseRecord).isNotNull();
             logger.info("Record found with UUID {}", responseRecord.getResourceUuid());
 
@@ -142,11 +151,11 @@ public class BronBerichtTest {
             Document doc = builder.parse(new java.io.ByteArrayInputStream(message.getBytes()));
             XPath xpath = XPathFactory.newInstance().newXPath();
 
-            assertThat(xpath.compile("ValidatieMelding/SysteemMelding/MeldingSoort/text()").evaluate(doc, XPathConstants.STRING)).isEqualTo("02 Server of dienst niet bereikbaar");
-            assertThat(xpath.compile("ValidatieMelding/SysteemMelding/MeldingToelichting/text()").evaluate(doc, XPathConstants.STRING)).isEqualTo("Geen antwoord ontvangen van externe bron");
+            assertThat(xpath.compile("ValidatieMelding/SysteemMelding/MeldingSoort/text()").evaluate(doc, XPathConstants.STRING)).isEqualTo("99 Specifieke melding");
+            assertThat(xpath.compile("ValidatieMelding/SysteemMelding/MeldingSpecifiek/text()").evaluate(doc, XPathConstants.STRING)).isEqualTo("Consent for consumer data has expired");
 
-            APIResponse APIResponse = responseRecord.confirm();
-            assertThat(APIResponse.getResponse().statusCode()).isEqualTo(200);
+            APIResponse apiResponse = responseRecord.confirm();
+            assertThat(apiResponse.getResponse().statusCode()).isEqualTo(200);
         } catch (InterruptedException | URISyntaxException | XPathExpressionException | ParserConfigurationException |
                  SAXException | IOException e) {
             throw new RuntimeException(e);

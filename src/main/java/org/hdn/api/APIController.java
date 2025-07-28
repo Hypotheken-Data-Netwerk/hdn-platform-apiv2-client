@@ -28,12 +28,38 @@ public class APIController {
     private static APIController instance;
 
     /**
+     * Initializes the instance
+     *
+     * @param baseURL          the base URL for the API calls
+     * @param authURL          the base URL for the Authorization (token) calls
+     * @param clientID         the client ID used for the Authorization
+     * @param clientSecret     the client secret used for the Authorization
+     * @param keyStorePath     the path to the certificate
+     * @param keyStorePassword the passwordt of the certificate
+     */
+    public static synchronized void init(String baseURL, String authURL, String clientID, String clientSecret, String keyStorePath, String keyStorePassword) {
+        if (instance != null) {
+            throw new IllegalStateException("APIController already initialized");
+        }
+        instance = new APIController(baseURL, authURL, clientID, clientSecret, keyStorePath, keyStorePassword);
+    }
+
+    /**
+     * Checks if the singleton instance is already initialized
+     *
+     * @return true if the instsance is initiatilized, false if not
+     */
+    public static boolean isNotInitialized() {
+        return instance == null;
+    }
+
+    /**
      * Returns the singleton instance of the APIController
      *
      * @return the singleton instance of the APIController
      */
     public static APIController getInstance() {
-        if (instance == null) instance = new APIController();
+        if (instance == null) throw new IllegalStateException("APIController not initialized");
         return instance;
     }
 
@@ -65,36 +91,35 @@ public class APIController {
         return uri.toString();
     }
 
-    private final Logger logger = LoggerFactory.getLogger(APIController.class);
-    private String baseURL;
-    private String authURL;
-    private String clientID;
-    private String clientSecret;
+    private static final Logger logger = LoggerFactory.getLogger(APIController.class);
+    private final String baseURL;
+    private final String authURL;
+    private final String clientID;
+    private final String clientSecret;
+    private final String keyStorePath;
+    private final String keyStorePassword;
+
     private String accessToken;
-    private String keyStorePath;
-    private String keyStorePassword;
-    private Properties props;
     private SSLContext sslContext;
 
     /**
      * Constructs the APIController
      */
-    public APIController() {
-        try {
-            props = new Properties();
-            props.load(new FileInputStream("settings.properties"));
-            baseURL = props.getProperty("baseURL");
-            authURL = props.getProperty("authURL");
-            clientID = props.getProperty("clientID");
-            clientSecret = props.getProperty("clientSecret");
-            keyStorePath = props.getProperty("certificate");
-            keyStorePassword = props.getProperty("password");
+    public APIController(String baseURL, String authURL, String clientID, String clientSecret, String keyStorePath, String keyStorePassword) {
+        this.baseURL = baseURL;
+        this.authURL = authURL;
+        this.clientID = clientID;
+        this.clientSecret = clientSecret;
+        this.keyStorePath = keyStorePath;
+        this.keyStorePassword = keyStorePassword;
 
+        try (FileInputStream fis = new FileInputStream(keyStorePath)) {
             KeyStore keyStore = KeyStore.getInstance("PKCS12");
-            FileInputStream fis = new FileInputStream(keyStorePath);
             keyStore.load(fis, keyStorePassword.toCharArray());
+
             KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             kmf.init(keyStore, keyStorePassword.toCharArray());
+
             sslContext = SSLContext.getInstance("TLS");
             sslContext.init(kmf.getKeyManagers(), null, new SecureRandom());
         } catch (UnrecoverableKeyException | CertificateException | KeyStoreException | IOException |
@@ -104,10 +129,10 @@ public class APIController {
     }
 
     /**
-     * Extracts the first privatekey of the certificate configured in the settings.properties based on the
-     * password configured in the settings.properties
+     * Extracts the first private key of the certificate configured in the settings.properties
+     * based on the password configured in the settings.properties.
      *
-     * @return the private key or null of no private keys are found
+     * @return the private key
      * @throws IOException               thrown when an IO error occurs
      * @throws KeyStoreException         thrown when an error in the keystore occurs
      * @throws CertificateException      thrown when an error in the certificate occurs
@@ -115,164 +140,256 @@ public class APIController {
      * @throws UnrecoverableKeyException thrown when an unrecoverable key error occurs
      */
     public PrivateKey getPrivateKey() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException {
-        FileInputStream fis = new FileInputStream(keyStorePath);
-        KeyStore keystore = KeyStore.getInstance("PKCS12");
-        keystore.load(fis, keyStorePassword.toCharArray());
+        try (FileInputStream fis = new FileInputStream(keyStorePath)) {
+            KeyStore keystore = KeyStore.getInstance("PKCS12");
+            keystore.load(fis, keyStorePassword.toCharArray());
 
-        Enumeration<String> aliases = keystore.aliases();
-        if (aliases.hasMoreElements()) {
-            String alias = aliases.nextElement();
-            return (PrivateKey) keystore.getKey(alias, keyStorePassword.toCharArray());
-        } else {
-            logger.error("Geen alias gevonden in het .p12 bestand.");
+            Enumeration<String> aliases = keystore.aliases();
+            if (aliases.hasMoreElements()) {
+                String alias = aliases.nextElement();
+                Key key = keystore.getKey(alias, keyStorePassword.toCharArray());
+
+                if (key instanceof PrivateKey privateKey) {
+                    return privateKey;
+                } else {
+                    logger.error("De sleutel onder alias '{}' is geen PrivateKey.", alias);
+                    throw new KeyStoreException("Gevonden sleutel is geen PrivateKey.");
+                }
+            } else {
+                logger.error("Geen alias gevonden in het .p12 bestand.");
+                throw new KeyStoreException("Geen alias gevonden in het key store.");
+            }
         }
-        return null;
     }
+
+    /**
+     * Extracts the first public key from the certificate stored in the configured .p12 file.
+     *
+     * @return the PublicKey
+     * @throws IOException               if an I/O error occurs
+     * @throws KeyStoreException         if the keystore has a problem
+     * @throws CertificateException      if the certificate can't be loaded
+     * @throws NoSuchAlgorithmException  if the algorithm is unsupported
+     */
+    public PublicKey getPublicKey() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
+        try (FileInputStream fis = new FileInputStream(keyStorePath)) {
+            KeyStore keystore = KeyStore.getInstance("PKCS12");
+            keystore.load(fis, keyStorePassword.toCharArray());
+
+            Enumeration<String> aliases = keystore.aliases();
+            if (aliases.hasMoreElements()) {
+                String alias = aliases.nextElement();
+                java.security.cert.Certificate cert = keystore.getCertificate(alias);
+
+                if (cert != null) {
+                    return cert.getPublicKey();
+                } else {
+                    logger.error("Geen certificaat gevonden voor alias '{}'.", alias);
+                    throw new KeyStoreException("Geen certificaat gevonden.");
+                }
+            } else {
+                logger.error("Geen alias gevonden in het .p12 bestand.");
+                throw new KeyStoreException("Geen alias gevonden in het keystore.");
+            }
+        }
+    }
+
+    public String getPublicKeyAsPem() throws IOException, CertificateException, NoSuchAlgorithmException, KeyStoreException {
+        PublicKey publicKey = getPublicKey();
+        byte[] encoded = publicKey.getEncoded();
+        String base64Encoded = Base64.getEncoder().encodeToString(encoded);
+
+        StringBuilder pemBuilder = new StringBuilder();
+        pemBuilder.append("-----BEGIN PUBLIC KEY-----\n");
+        for (int i = 0; i < base64Encoded.length(); i += 64) {
+            int endIndex = Math.min(i + 64, base64Encoded.length());
+            pemBuilder.append(base64Encoded, i, endIndex).append("\n");
+        }
+        pemBuilder.append("-----END PUBLIC KEY-----");
+
+        return pemBuilder.toString();
+    }
+
 
     /**
      * Requests a new token and stores it for usage in future requests
      */
     public void getToken() {
-        String form = "grant_type=password&" +
-                "client_id=" + clientID + "&" +
-                "client_secret=" + clientSecret + "&" +
-                "scope=openid profile";
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(authURL + "/auth/realms/platformoftrust/protocol/openid-connect/token"))
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(form))
-                .build();
+        String form = "grant_type=password&" + "client_id=" + clientID + "&" + "client_secret=" + clientSecret + "&" + "scope=openid profile";
+        HttpRequest request = HttpRequest.newBuilder().uri(URI.create(authURL + "/auth/realms/platformoftrust/protocol/openid-connect/token")).header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(form)).build();
         HttpResponse<String> response;
         try (HttpClient client = HttpClient.newBuilder().sslContext(sslContext).build()) {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
             JSONObject obj = new JSONObject(response.body());
             accessToken = obj.getString("access_token");
-        } catch (InterruptedException | IOException e) {
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.info("{}", e.getMessage());
+        } catch (IOException e) {
             logger.info("{}", e.getMessage());
         }
+    }
+
+    private static HttpRequest.Builder setOnBehalfOf(HttpRequest.Builder builder, String node) {
+        if (node != null && !node.isBlank()) {
+            if (node.matches("\\d{6}")) {
+                builder.header("x-on-behalf-of", node);
+            } else {
+                logger.error("Provided node number {} should be 6 digits", node);
+                throw new NumberFormatException("Node number should be 6 digits");
+            }
+        }
+        return builder;
     }
 
     /**
      * Performs a get call
      *
-     * @param URL the URL to call, without the baseURL part
+     * @param url the URL to call, without the baseURL part
      * @return returns the APIResponse
      * @throws IOException          thrown when an IO error occurs
      * @throws InterruptedException thrown when the request is interruped
      */
-    public APIResponse get(String URL) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseURL + URL))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .GET()
+    public APIResponse get(String url) throws IOException, InterruptedException {
+        return get(url, null);
+    }
+
+    /**
+     * Performs a get call
+     *
+     * @param url  the URL to call, without the baseURL part
+     * @param node the node on behalf of which the request is made or null
+     * @return returns the APIResponse
+     * @throws IOException          thrown when an IO error occurs
+     * @throws InterruptedException thrown when the request is interruped
+     */
+    public APIResponse get(String url, String node) throws IOException, InterruptedException {
+        HttpRequest request = setOnBehalfOf(
+                HttpRequest.newBuilder().uri(
+                                URI.create(baseURL + url))
+                        .header(APIConstants.HEADER_AUTH, APIConstants.AUTH_HEADER_PREFIX + accessToken)
+                        .header(APIConstants.HEADER_CONTENT_TYPE, APIConstants.CONTENT_TYPE_HEADER)
+                        .GET(),
+                node)
                 .build();
 
         try (HttpClient client = HttpClient.newBuilder().build()) {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             return new APIResponse(response);
-        } catch (IOException | InterruptedException e) {
-            logger.error("{}", e.getMessage());
-            throw e;
         }
     }
 
     /**
      * Performs a post call without parameters
      *
-     * @param URL the URL to call, without the baseURL part
+     * @param url the URL to call, without the baseURL part
      * @return returns the APIResponse
      * @throws IOException          thrown when an IO error occurs
      * @throws InterruptedException thrown when the request is interruped
      */
-    public APIResponse post(String URL) throws IOException, InterruptedException {
-        return post(URL, null);
+    public APIResponse post(String url, String node) throws IOException, InterruptedException {
+        return post(url, null, node);
     }
 
     /**
      * Performs a post call with parameters
      *
-     * @param URL  the URL to call, without the baseURL part
+     * @param url  the URL to call, without the baseURL part
      * @param body the body to use in the call
+     * @param node the node on behalf of which the request is made or null
      * @return returns the APIResponse
      * @throws IOException          thrown when an IO error occurs
      * @throws InterruptedException thrown when the request is interruped
      */
-    public APIResponse post(String URL, String body) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseURL + URL))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .POST(body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body))
+    public APIResponse post(String url, String body, String node) throws IOException, InterruptedException {
+        HttpRequest request = setOnBehalfOf(
+                HttpRequest.newBuilder()
+                        .uri(URI.create(baseURL + url))
+                        .header(APIConstants.HEADER_AUTH, APIConstants.AUTH_HEADER_PREFIX + accessToken)
+                        .header(APIConstants.HEADER_CONTENT_TYPE, APIConstants.CONTENT_TYPE_HEADER)
+                        .POST(body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body)),
+                node)
                 .build();
 
         try (HttpClient client = HttpClient.newBuilder().build()) {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             return new APIResponse(response);
-        } catch (IOException | InterruptedException e) {
-            logger.error("{}", e.getMessage());
-            throw e;
         }
     }
 
     /**
      * Performs a put call with parameters
      *
-     * @param URL  the URL to call, without the baseURL part
-     * @param body the body to use in the call
+     * @param url  the URL to call, without the baseURL part
+     * @param node the node on behalf of which the request is made or null
      * @return returns the APIResponse
      * @throws IOException          thrown when an IO error occurs
      * @throws InterruptedException thrown when the request is interruped
      */
-    public APIResponse put(String URL, String body) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseURL + URL))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .PUT(body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body))
+    public APIResponse put(String url, String node) throws IOException, InterruptedException {
+        return put(url, null, node);
+    }
+
+    /**
+     * Performs a put call with parameters
+     *
+     * @param url  the URL to call, without the baseURL part
+     * @param body the body to use in the call
+     * @param node the node on behalf of which the request is made or null
+     * @return returns the APIResponse
+     * @throws IOException          thrown when an IO error occurs
+     * @throws InterruptedException thrown when the request is interruped
+     */
+    public APIResponse put(String url, String body, String node) throws IOException, InterruptedException {
+        HttpRequest request = setOnBehalfOf(
+                HttpRequest.newBuilder()
+                        .uri(URI.create(baseURL + url))
+                        .header(APIConstants.HEADER_AUTH, APIConstants.AUTH_HEADER_PREFIX + accessToken)
+                        .header(APIConstants.HEADER_CONTENT_TYPE, APIConstants.CONTENT_TYPE_HEADER)
+                        .PUT(body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body)),
+                node)
                 .build();
 
         try (HttpClient client = HttpClient.newBuilder().build()) {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             return new APIResponse(response);
-        } catch (IOException | InterruptedException e) {
-            logger.error("{}", e.getMessage());
-            throw e;
         }
     }
 
     /**
      * Performs a delete call without parameters
      *
-     * @param URL the URL to call, without the baseURL part
+     * @param url the URL to call, without the baseURL part
      * @return returns the APIResponse
      * @throws IOException          thrown when an IO error occurs
      * @throws InterruptedException thrown when the request is interruped
      */
-    public APIResponse delete(String URL) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(baseURL + URL))
-                .header("Authorization", "Bearer " + accessToken)
-                .header("Content-Type", "application/json")
-                .DELETE()
+    public APIResponse delete(String url) throws IOException, InterruptedException {
+        return delete(url, null);
+    }
+
+    /**
+     * Performs a delete call without parameters
+     *
+     * @param url  the URL to call, without the baseURL part
+     * @param node the node on behalf of which the request is made or null
+     * @return returns the APIResponse
+     * @throws IOException          thrown when an IO error occurs
+     * @throws InterruptedException thrown when the request is interruped
+     */
+    public APIResponse delete(String url, String node) throws IOException, InterruptedException {
+        HttpRequest request = setOnBehalfOf(
+                HttpRequest.newBuilder()
+                        .uri(URI.create(baseURL + url))
+                        .header(APIConstants.HEADER_AUTH, APIConstants.AUTH_HEADER_PREFIX + accessToken)
+                        .header(APIConstants.HEADER_CONTENT_TYPE, APIConstants.CONTENT_TYPE_HEADER).DELETE(),
+                node)
                 .build();
 
         try (HttpClient client = HttpClient.newBuilder().build()) {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             return new APIResponse(response);
-        } catch (IOException | InterruptedException e) {
-            logger.error("{}", e.getMessage());
-            throw e;
         }
-    }
-
-    /**
-     * Returns a property from the settings.properties file or null if the property is not found
-     * @param propName the name of the property
-     * @return the value of the property
-     */
-    public String getProp(String propName) {
-        return props.getProperty(propName);
     }
 }
