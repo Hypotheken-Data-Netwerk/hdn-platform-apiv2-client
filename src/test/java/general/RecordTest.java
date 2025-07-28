@@ -1,42 +1,56 @@
+package general;
+
 import org.hdn.api.APIConstants;
 import org.hdn.api.APIController;
 import org.hdn.api.APIResponse;
 import org.hdn.api.object.Dossier;
 import org.hdn.api.object.Record;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Properties;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class RecordTest {
+class RecordTest {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
+    protected static final Properties props = new Properties();
+
+    @BeforeAll
+    static void setupBeforeAll() {
+        try {
+            props.load(new FileInputStream("settings.properties"));
+            if (APIController.isNotInitialized())
+                APIController.init(props.getProperty("baseURL"), props.getProperty("authURL"), props.getProperty("clientID"), props.getProperty("clientSecret"), props.getProperty("certificate"), props.getProperty("password"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Test
     void createRecord() {
         try {
             APIController.getInstance().getToken();
             Dossier dossier = new Dossier();
-            APIResponse apiResponse = dossier.create();
+            APIResponse apiResponse = dossier.setOnBehalfOf(props.getProperty("senderNode")).create();
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
             logger.info("Dossier created with UUID {}", dossier.getResourceUuid());
 
-            Record record = new Record(dossier.getResourceUuid())
+            Record apiRecord = new Record(dossier.getResourceUuid())
                     .setHeader(
                             new Record.Header(
                                     "1",
                                     dossier.getResourceUuid(),
-                                    APIController.getInstance().getProp("senderNode"),
-                                    APIController.getInstance().getProp("receiverNode"),
+                                    props.getProperty("senderNode"),
+                                    props.getProperty("receiverNode"),
                                     new Record.RequestSchema(
                                             "AX OfferteAanvraag",
                                             "24.0",
@@ -59,7 +73,7 @@ public class RecordTest {
                                     )
                             )
                     )
-                    .setPublicKey(APIController.getInstance().getProp("publickeyUUID"))
+                    .setPublicKey(props.getProperty("publickeyUUID"))
                     .setMessage("""
                             <?xml version="1.0" encoding="utf-8"?>
                             <OfferteAanvraag xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
@@ -214,11 +228,11 @@ public class RecordTest {
                             	</Lening>
                             </OfferteAanvraag>""")
                     .signMessage();
-            apiResponse = record.create();
+            apiResponse = apiRecord.setOnBehalfOf(props.getProperty("senderNode")).create();
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
-            logger.info("Record created with UUID {}", record.getResourceUuid());
+            logger.info("Record created with UUID {}", apiRecord.getResourceUuid());
 
-            apiResponse = record.send();
+            apiResponse = apiRecord.send();
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(200);
         } catch (IOException | InterruptedException | UnrecoverableKeyException | CertificateException |
                  KeyStoreException | NoSuchAlgorithmException | SignatureException | InvalidKeyException e) {

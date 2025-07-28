@@ -15,6 +15,7 @@ public class APIObject {
      * Returns a String representation of the APIObject
      * @return a String representation
      */
+    @SuppressWarnings("java:S3011") // Toestaan van reflectieve toegang tot private velden in toString()
     @Override
     public String toString() {
         Field[] fields = this.getClass().getDeclaredFields();

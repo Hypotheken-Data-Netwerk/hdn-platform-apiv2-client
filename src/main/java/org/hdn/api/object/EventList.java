@@ -62,28 +62,28 @@ public class EventList extends APIObject {
         try {
             events.clear();
             Integer total = 0;
-            Integer offset = this.offset;
+            Integer loopOffset = this.offset;
 
-            while (offset <= total) {
-                Map<String, String> params = buildParams(offset);
+            while (loopOffset <= total) {
+                Map<String, String> params = buildParams(loopOffset);
 
                 // Process the get call
                 String uri = this.recordUuid == null ? String.format(APIConstants.DOSSIER_GET_EVENTS, dossierUuid) : String.format(APIConstants.RECORD_GET_EVENTS, dossierUuid, recordUuid);
                 logger.info(uri);
-                APIResponse APIResponse = APIController.getInstance().get(APIController.buildUrl(uri, params));
+                APIResponse apiResponse = APIController.getInstance().get(APIController.buildUrl(uri, params));
 
                 // When the list of dossiers is returned
-                if (APIResponse.getResponse().statusCode() == 200) {
-                    JSONArray records = APIResponse.getBody().getJSONObject("data").getJSONArray("events");
-                    for (Object record : records) {
-                        Event tmp = new Event(dossierUuid, recordUuid, ((JSONObject) record).getString("resourceUuid"), record.toString());
+                if (apiResponse.getResponse().statusCode() == 200) {
+                    JSONArray records = apiResponse.getBody().getJSONObject("data").getJSONArray("events");
+                    for (Object apiRecord : records) {
+                        Event tmp = new Event(dossierUuid, recordUuid, ((JSONObject) apiRecord).getString("resourceUuid"), apiRecord.toString());
                         this.events.add(tmp);
                     }
 
-                    total = this.events.isEmpty() ? -1 : APIResponse.getBody().getInt("total");
-                    offset += limit;
+                    total = this.events.isEmpty() ? -1 : apiResponse.getBody().getInt("total");
+                    loopOffset += limit;
                 } else {
-                    logger.error("Error with code [{}] while retrieving the eventlist", APIResponse.getResponse().statusCode());
+                    logger.error("Error with code [{}] while retrieving the eventlist", apiResponse.getResponse().statusCode());
                     total = -1;
                 }
             }

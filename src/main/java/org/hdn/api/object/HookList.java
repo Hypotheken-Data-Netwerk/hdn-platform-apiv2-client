@@ -9,6 +9,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.security.InvalidParameterException;
 import java.util.*;
 
 public class HookList extends APIObject {
@@ -36,10 +37,10 @@ public class HookList extends APIObject {
     private String timestampOperator = null;
     private String messageTypes = null;
 
-    @SuppressWarnings("unused")
-    public HookList() {
-
-    }
+    /**
+     * The node on behalf of which the request is made
+     */
+    private String onBehalfOf = null;
 
     /**
      * Retrieves all hooks based on the parameters and filter provided
@@ -52,31 +53,36 @@ public class HookList extends APIObject {
      */
     @SuppressWarnings("unused,UnusedReturnValue")
     public HookList get() throws IOException, URISyntaxException, InterruptedException, JSONException {
+        if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
+            logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
+            throw new InvalidParameterException("OnBehalfOf is required");
+        }
+
         try {
             hooks.clear();
             Integer total = 0;
-            Integer offset = this.offset;
+            Integer loopOffset = this.offset;
 
-            while (offset <= total) {
-                Map<String, String> params = buildParams(offset);
+            while (loopOffset <= total) {
+                Map<String, String> params = buildParams(loopOffset);
 
                 // Process the get call
                 String uri = String.format(APIConstants.HOOKS_GET);
-                logger.info(APIController.buildUrl(uri, params));
-                APIResponse APIResponse = APIController.getInstance().get(APIController.buildUrl(uri, params));
+                APIResponse apiResponse = APIController.getInstance().get(APIController.buildUrl(uri, params), onBehalfOf);
 
                 // When the list of dossiers is returned
-                if (APIResponse.getResponse().statusCode() == 200) {
-                    JSONArray records = APIResponse.getBody().getJSONObject("data").getJSONArray("hooks");
-                    for (Object record : records) {
-                        Hook tmp = new Hook(((JSONObject) record).getString("resourceUuid"), record.toString());
+                if (apiResponse.getResponse().statusCode() == 200) {
+                    JSONArray records = apiResponse.getBody().getJSONObject("data").getJSONArray("hooks");
+                    for (Object apiRecord : records) {
+                        Hook tmp = new Hook(((JSONObject) apiRecord).getString("resourceUuid"), apiRecord.toString());
+                        tmp.setOnBehalfOf(onBehalfOf);
                         this.hooks.add(tmp);
                     }
 
-                    total = this.hooks.isEmpty() ? -1 : APIResponse.getBody().getInt("total");
-                    offset += limit;
+                    total = this.hooks.isEmpty() ? -1 : apiResponse.getBody().getInt("total");
+                    loopOffset += limit;
                 } else {
-                    logger.error("Error with code [{}] while retrieving the hooklist", APIResponse.getResponse().statusCode());
+                    logger.error("Error with code [{}] while retrieving the hooklist", apiResponse.getResponse().statusCode());
                     total = -1;
                 }
             }
@@ -188,6 +194,11 @@ public class HookList extends APIObject {
     @SuppressWarnings("unused")
     public HookList setMessageTypes(String messageTypes) {
         this.messageTypes = messageTypes;
+        return this;
+    }
+
+    public HookList setOnBehalfOf(String node) {
+        this.onBehalfOf = node;
         return this;
     }
 }

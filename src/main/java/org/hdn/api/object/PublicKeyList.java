@@ -9,6 +9,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.security.InvalidParameterException;
 import java.util.*;
 
 public class PublicKeyList extends APIObject {
@@ -26,9 +27,16 @@ public class PublicKeyList extends APIObject {
      * The node of the list of publickeys to retrieve
      */
     private String node = null;
+    /**
+     * The node on behalf of which the request is made
+     */
+    private String onBehalfOf = null;
 
-    @SuppressWarnings("unused")
-    public PublicKeyList() {
+    private void validateOnBehalfOf() throws InvalidParameterException {
+        if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
+            logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
+            throw new InvalidParameterException("onBehalfOf is required");
+        }
     }
 
     /**
@@ -42,31 +50,33 @@ public class PublicKeyList extends APIObject {
      */
     @SuppressWarnings("unused,UnusedReturnValue")
     public PublicKeyList get() throws IOException, URISyntaxException, InterruptedException, JSONException {
+        validateOnBehalfOf();
+
         try {
             publickeys.clear();
             Integer total = 0;
-            Integer offset = this.offset;
+            Integer loopOffset = this.offset;
 
-            while (offset <= total) {
-                Map<String, String> params = buildParams(offset);
+            while (loopOffset <= total) {
+                Map<String, String> params = buildParams(loopOffset);
 
                 // Process the get call
                 String uri = String.format(APIConstants.PUBLIC_KEYS_GET);
-                logger.info(APIController.buildUrl(uri, params));
-                APIResponse APIResponse = APIController.getInstance().get(APIController.buildUrl(uri, params));
+                APIResponse apiResponse = APIController.getInstance().get(APIController.buildUrl(uri, params), onBehalfOf);
 
                 // When the list of dossiers is returned
-                if (APIResponse.getResponse().statusCode() == 200) {
-                    JSONArray records = APIResponse.getBody().getJSONObject("data").getJSONArray("publickeys");
-                    for (Object record : records) {
-                        PublicKey tmp = new PublicKey(((JSONObject) record).getString("resourceUuid"));
+                if (apiResponse.getResponse().statusCode() == 200) {
+                    JSONArray records = apiResponse.getBody().getJSONObject("data").getJSONArray("publickeys");
+                    for (Object apiRecord : records) {
+                        PublicKey tmp = new PublicKey(((JSONObject) apiRecord).getString("resourceUuid"));
+                        tmp.setOnBehalfOf(onBehalfOf);
                         this.publickeys.add(tmp);
                     }
 
-                    total = this.publickeys.isEmpty() ? -1 : APIResponse.getBody().getInt("total");
-                    offset += limit;
+                    total = this.publickeys.isEmpty() ? -1 : apiResponse.getBody().getInt("total");
+                    loopOffset += limit;
                 } else {
-                    logger.error("Error with code [{}] while retrieving the publickeys list", APIResponse.getResponse().statusCode());
+                    logger.error("Error with code [{}] while retrieving the publickeys list", apiResponse.getResponse().statusCode());
                     total = -1;
                 }
             }
@@ -93,11 +103,11 @@ public class PublicKeyList extends APIObject {
         try {
             // Process the get call
             String uri = String.format(APIConstants.PUBLIC_KEY_ALGORITHM);
-            APIResponse APIResponse = APIController.getInstance().get(APIController.buildUrl(uri, new HashMap<>()));
+            APIResponse apiResponse = APIController.getInstance().get(APIController.buildUrl(uri, new HashMap<>()));
 
             // When the list of dossiers is returned
-            if (APIResponse.getResponse().statusCode() == 200) {
-                JSONArray results = APIResponse.getBody().getJSONArray("algorithms");
+            if (apiResponse.getResponse().statusCode() == 200) {
+                JSONArray results = apiResponse.getBody().getJSONArray("algorithms");
                 for (Object result : results) {
                     algorithms.add(result.toString());
                 }
@@ -176,6 +186,11 @@ public class PublicKeyList extends APIObject {
     @SuppressWarnings("unused")
     public PublicKeyList setNode(String node) {
         this.node = node;
+        return this;
+    }
+
+    public PublicKeyList setOnBehalfOf(String node) {
+        this.onBehalfOf = node;
         return this;
     }
 }

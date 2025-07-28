@@ -63,6 +63,10 @@ public class RecordList extends APIObject {
      * The sortation of the records
      */
     private String sort = null;
+    /**
+     * The node on behalf of which the request is made
+     */
+    private String onBehalfOf = null;
 
     /**
      * Constructs a new record list object
@@ -96,27 +100,27 @@ public class RecordList extends APIObject {
         try {
             records.clear();
             Integer total = 0;
-            Integer offset = this.offset;
+            Integer loopOffset = this.offset;
 
-            while (offset <= total) {
-                Map<String, String> params = buildParams(offset);
+            while (loopOffset <= total) {
+                Map<String, String> params = buildParams(loopOffset);
 
                 // Process the get call
                 String uri = this.dossierUuid == null ? APIConstants.RECORDS_GET : String.format(APIConstants.DOSSIER_GET_RECORDS, dossierUuid);
-                APIResponse APIResponse = APIController.getInstance().get(APIController.buildUrl(uri, params));
+                APIResponse apiResponse = APIController.getInstance().get(APIController.buildUrl(uri, params), onBehalfOf);
 
                 // When the list of dossiers is returned
-                if (APIResponse.getResponse().statusCode() == 200) {
-                    JSONArray records = APIResponse.getBody().getJSONObject("data").getJSONArray("records");
-                    for (Object record : records) {
-                        Record tmp = new Record(((JSONObject) record).getString("dossierUuid"), ((JSONObject) record).getString("resourceUuid"), record.toString());
+                if (apiResponse.getResponse().statusCode() == 200) {
+                    JSONArray apiRecords = apiResponse.getBody().getJSONObject("data").getJSONArray("records");
+                    for (Object apiRecord : apiRecords) {
+                        Record tmp = new Record(((JSONObject) apiRecord).getString("dossierUuid"), ((JSONObject) apiRecord).getString(APIConstants.RESOURCE_UUID), apiRecord.toString());
                         this.records.add(tmp);
                     }
 
-                    total = this.records.isEmpty() ? -1 : APIResponse.getBody().getInt("total");
-                    offset += limit;
+                    total = this.records.isEmpty() ? -1 : apiResponse.getBody().getInt("total");
+                    loopOffset += limit;
                 } else {
-                    logger.error("Error with code [{}] while retrieving the recordlist", APIResponse.getResponse().statusCode());
+                    logger.error("Error with code [{}] while retrieving the recordlist", apiResponse.getResponse().statusCode());
                     total = -1;
                 }
             }
@@ -305,9 +309,12 @@ public class RecordList extends APIObject {
         getRecords().forEach(r -> {
             try {
                 logger.info("Confirming record with UUID: {}", r.getResourceUuid());
-                r.fetch();
-                r.confirm();
-            } catch (IOException | InterruptedException e) {
+                r.setOnBehalfOf(onBehalfOf).fetch();
+                r.setOnBehalfOf(onBehalfOf).confirm();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 throw new RuntimeException(e);
             }
         });
@@ -341,5 +348,10 @@ public class RecordList extends APIObject {
         }
         logger.info("Max retries reached");
         return List.of();
+    }
+
+    public RecordList setOnBehalfOf(String node) {
+        this.onBehalfOf = node;
+        return this;
     }
 }

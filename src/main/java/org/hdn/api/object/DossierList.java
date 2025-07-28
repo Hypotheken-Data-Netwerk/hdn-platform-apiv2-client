@@ -53,10 +53,9 @@ public class DossierList extends APIObject {
     private String originalNodes = null;
 
     /**
-     * Constructs a dossier list
+     * The node on behalf of which the request is made
      */
-    public DossierList() {
-    }
+    private String onBehalfOf = null;
 
     /**
      * Retrieves all dossiers based on the parameters and filter provided
@@ -71,26 +70,27 @@ public class DossierList extends APIObject {
         try {
             dossiers.clear();
             Integer total = 0;
-            Integer offset = this.offset;
+            Integer loopOffset = this.offset;
 
-            while (offset <= total) {
-                Map<String, String> params = buildParams(offset);
+            while (loopOffset <= total) {
+                Map<String, String> params = buildParams(loopOffset);
 
                 // Process the get call
-                APIResponse APIResponse = APIController.getInstance().get(APIController.buildUrl(APIConstants.DOSSIERS_GET, params));
+                APIResponse apiResponse = APIController.getInstance().get(APIController.buildUrl(APIConstants.DOSSIERS_GET, params), onBehalfOf);
 
                 // When the list of dossiers is returned
-                if (APIResponse.getResponse().statusCode() == 200) {
-                    JSONArray dossiers = APIResponse.getBody().getJSONObject("data").getJSONArray("dossiers");
-                    for (Object dossier : dossiers) {
-                        Dossier tmp = new Dossier(((JSONObject) dossier).getString("resourceUuid"));
+                if (apiResponse.getResponse().statusCode() == 200) {
+                    JSONArray dossierList = apiResponse.getBody().getJSONObject("data").getJSONArray("dossiers");
+                    for (Object dossier : dossierList) {
+                        Dossier tmp = new Dossier(((JSONObject) dossier).getString(APIConstants.RESOURCE_UUID));
+                        tmp.setOnBehalfOf(onBehalfOf);
                         this.dossiers.add(tmp);
                     }
 
-                    total = this.dossiers.isEmpty() ? -1 : APIResponse.getBody().getInt("total");
-                    offset += limit;
+                    total = this.dossiers.isEmpty() ? -1 : apiResponse.getBody().getInt("total");
+                    loopOffset += limit;
                 } else {
-                    logger.error("Error with code [{}] while retrieving the dossierlist", APIResponse.getResponse().statusCode());
+                    logger.error("Error with code [{}] while retrieving the dossierlist", apiResponse.getResponse().statusCode());
                     total = -1;
                 }
             }
@@ -197,6 +197,7 @@ public class DossierList extends APIObject {
 
     /**
      * Sets the node of the dossiers to retrieve
+     *
      * @param node a node
      * @return the dossier list object itself
      */
@@ -208,6 +209,7 @@ public class DossierList extends APIObject {
 
     /**
      * Sets the requesttracenr of the dossiers to retrieve
+     *
      * @param requestTraceNr the requesttracenr
      * @return the dossier list object itself
      */
@@ -219,6 +221,7 @@ public class DossierList extends APIObject {
 
     /**
      * Sets the UUID of the dosiers to retrieve
+     *
      * @param resourceUuid the UUID
      * @return the dossier list object itself
      */
@@ -230,12 +233,18 @@ public class DossierList extends APIObject {
 
     /**
      * Sets the originalnodes of the dossiers to retrieve
+     *
      * @param originalNodes the originalnode
      * @return the dossier list object itself
      */
     @SuppressWarnings("unused")
     public DossierList setOriginalNodes(String originalNodes) {
         this.originalNodes = originalNodes;
+        return this;
+    }
+
+    public DossierList setOnBehalfOf(String node) {
+        this.onBehalfOf = node;
         return this;
     }
 }
