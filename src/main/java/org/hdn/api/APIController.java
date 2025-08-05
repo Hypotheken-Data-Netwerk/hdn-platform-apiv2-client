@@ -166,10 +166,10 @@ public class APIController {
      * Extracts the first public key from the certificate stored in the configured .p12 file.
      *
      * @return the PublicKey
-     * @throws IOException               if an I/O error occurs
-     * @throws KeyStoreException         if the keystore has a problem
-     * @throws CertificateException      if the certificate can't be loaded
-     * @throws NoSuchAlgorithmException  if the algorithm is unsupported
+     * @throws IOException              if an I/O error occurs
+     * @throws KeyStoreException        if the keystore has a problem
+     * @throws CertificateException     if the certificate can't be loaded
+     * @throws NoSuchAlgorithmException if the algorithm is unsupported
      */
     public PublicKey getPublicKey() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException {
         try (FileInputStream fis = new FileInputStream(keyStorePath)) {
@@ -243,6 +243,10 @@ public class APIController {
         return builder;
     }
 
+    private static final HttpClient client = HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_1_1) // of HTTP_2 als stabiel
+            .build();
+
     /**
      * Performs a get call
      *
@@ -274,10 +278,8 @@ public class APIController {
                 node)
                 .build();
 
-        try (HttpClient client = HttpClient.newBuilder().build()) {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            return new APIResponse(response);
-        }
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        return new APIResponse(response);
     }
 
     /**
@@ -312,10 +314,8 @@ public class APIController {
                 node)
                 .build();
 
-        try (HttpClient client = HttpClient.newBuilder().build()) {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            return new APIResponse(response);
-        }
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        return new APIResponse(response);
     }
 
     /**
@@ -351,10 +351,8 @@ public class APIController {
                 node)
                 .build();
 
-        try (HttpClient client = HttpClient.newBuilder().build()) {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            return new APIResponse(response);
-        }
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        return new APIResponse(response);
     }
 
     /**
@@ -387,9 +385,7 @@ public class APIController {
                 node)
                 .build();
 
-        try (HttpClient client = HttpClient.newBuilder().build()) {
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            return new APIResponse(response);
-        }
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        return new APIResponse(response);
     }
 }
