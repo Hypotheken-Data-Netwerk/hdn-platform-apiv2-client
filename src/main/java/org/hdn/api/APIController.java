@@ -244,7 +244,7 @@ public class APIController {
     }
 
     private static final HttpClient client = HttpClient.newBuilder()
-            .version(HttpClient.Version.HTTP_1_1) // of HTTP_2 als stabiel
+            //.version(HttpClient.Version.HTTP_1_1) // of HTTP_2 als stabiel
             .build();
 
     /**
