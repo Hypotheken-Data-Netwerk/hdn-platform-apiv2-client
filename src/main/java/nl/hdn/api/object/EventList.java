@@ -1,8 +1,8 @@
-package org.hdn.api.object;
+package nl.hdn.api.object;
 
-import org.hdn.api.APIConstants;
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
+import nl.hdn.api.APIConstants;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -49,7 +49,7 @@ public class EventList extends APIObject {
     }
 
     /**
-     * Retrieves all events based on the parameters and filter provided
+     * Retrieves all events based on the parameters and filter provided, with the default API controller
      *
      * @return the EventList object itself
      * @throws IOException          thrown when an IO error occurs
@@ -59,6 +59,21 @@ public class EventList extends APIObject {
      */
     @SuppressWarnings("unused,UnusedReturnValue")
     public EventList get() throws IOException, URISyntaxException, InterruptedException, JSONException {
+        return get(APIController.getInstance());
+    }
+
+    /**
+     * Retrieves all events based on the parameters and filter provided
+     *
+     * @param apiController the controller to be used for the API calls
+     * @return the EventList object itself
+     * @throws IOException          thrown when an IO error occurs
+     * @throws URISyntaxException   thrown when a URI syntax error occurs
+     * @throws InterruptedException thrown when an interrupted error occurs
+     * @throws JSONException        thrown when an error occurs in parsing the JSON
+     */
+    @SuppressWarnings("unused,UnusedReturnValue")
+    public EventList get(APIController apiController) throws IOException, URISyntaxException, InterruptedException, JSONException {
         try {
             events.clear();
             Integer total = 0;
@@ -70,7 +85,7 @@ public class EventList extends APIObject {
                 // Process the get call
                 String uri = this.recordUuid == null ? String.format(APIConstants.DOSSIER_GET_EVENTS, dossierUuid) : String.format(APIConstants.RECORD_GET_EVENTS, dossierUuid, recordUuid);
                 logger.info(uri);
-                APIResponse apiResponse = APIController.getInstance().get(APIController.buildUrl(uri, params));
+                APIResponse apiResponse = apiController.get(APIController.buildUrl(uri, params));
 
                 // When the list of dossiers is returned
                 if (apiResponse.getResponse().statusCode() == 200) {

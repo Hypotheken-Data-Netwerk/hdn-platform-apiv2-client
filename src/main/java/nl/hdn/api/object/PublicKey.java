@@ -1,8 +1,8 @@
-package org.hdn.api.object;
+package nl.hdn.api.object;
 
-import org.hdn.api.APIConstants;
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
+import nl.hdn.api.APIConstants;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -62,6 +62,10 @@ public class PublicKey extends APIObject {
     }
 
     public APIResponse create(String onBehalfOf) throws IOException, InterruptedException {
+        return create(onBehalfOf, APIController.getInstance());
+    }
+
+    public APIResponse create(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
         if (this.resourceUuid == null) {
             validateOnBehalfOf(onBehalfOf);
 
@@ -72,7 +76,7 @@ public class PublicKey extends APIObject {
             JSONObject body = new JSONObject();
             body.put("data", data);
 
-            APIResponse apiResponse = APIController.getInstance().post(String.format(APIConstants.PUBLIC_KEY_CREATE), body.toString(), onBehalfOf);
+            APIResponse apiResponse = apiController.post(String.format(APIConstants.PUBLIC_KEY_CREATE), body.toString(), onBehalfOf);
             if (apiResponse.getResponse().statusCode() == 201) {
                 updateAttributes(apiResponse.getBody());
             }
@@ -92,9 +96,21 @@ public class PublicKey extends APIObject {
      */
     @SuppressWarnings("unused")
     public PublicKey fetch(String onBehalfOf) throws IOException, InterruptedException {
+        return fetch(onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Fetches a hook
+     *
+     * @return The hook object
+     * @throws IOException          exception thrown when an IO error has occured
+     * @throws InterruptedException exception thrown when the API request to the platform was interrupted
+     */
+    @SuppressWarnings("unused")
+    public PublicKey fetch(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
         validateOnBehalfOf(onBehalfOf);
 
-        APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.PUBLIC_KEY_GET, resourceUuid), onBehalfOf);
+        APIResponse apiResponse = apiController.get(String.format(APIConstants.PUBLIC_KEY_GET, resourceUuid), onBehalfOf);
 
         if (apiResponse.getResponse().statusCode() == 200) {
             updateAttributes(apiResponse.getBody());

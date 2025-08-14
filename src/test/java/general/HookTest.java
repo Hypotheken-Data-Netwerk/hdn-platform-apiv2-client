@@ -1,13 +1,13 @@
 package general;
 
-import org.hdn.api.APIConstants;
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
-import org.hdn.api.object.Dossier;
-import org.hdn.api.object.Hook;
-import org.hdn.api.object.HookList;
-import org.hdn.api.object.Record;
-import org.hdn.api.object.RecordList;
+import nl.hdn.api.APIConstants;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
+import nl.hdn.api.object.Dossier;
+import nl.hdn.api.object.Hook;
+import nl.hdn.api.object.HookList;
+import nl.hdn.api.object.Record;
+import nl.hdn.api.object.RecordList;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.*;
@@ -119,27 +119,27 @@ class HookTest {
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(201);
             logger.info("Dossier created with UUID {}", dossier.getResourceUuid());
 
-            org.hdn.api.object.Record apiRecord = new org.hdn.api.object.Record(dossier.getResourceUuid())
+            Record apiRecord = new Record(dossier.getResourceUuid())
                     .setHeader(
-                            new org.hdn.api.object.Record.Header(
+                            new Record.Header(
                                     "1",
                                     dossier.getResourceUuid(),
                                     props.getProperty("senderNode"),
                                     props.getProperty("receiverNode"),
-                                    new org.hdn.api.object.Record.RequestSchema(
+                                    new Record.RequestSchema(
                                             "BronAanvraagBericht",
                                             "25.0",
                                             "AG ABN AMRO Hypotheken Groep",
                                             APIConstants.ContentType.XML,
                                             APIConstants.Environment.stage
                                     ),
-                                    List.of(new org.hdn.api.object.Record.ResponseSchema(
+                                    List.of(new Record.ResponseSchema(
                                             "BasisRegistratiePersonenBericht",
                                             "AG ABN AMRO Hypotheken Groep",
                                             "25.0.1.1",
                                             APIConstants.ContentType.XML
                                     )),
-                                    new org.hdn.api.object.Record.ExternalSource(
+                                    new Record.ExternalSource(
                                             "26 Basis Registratie Personen",
                                             "02 Ockto",
                                             "11 Mijnoverheid.nl"
@@ -147,10 +147,10 @@ class HookTest {
                             )
                     )
                     .setMiscellaneous(
-                            new org.hdn.api.object.Record.Miscellaneous(
+                            new Record.Miscellaneous(
                                     "Doniek Advies",
                                     "Doniek Hypotheken",
-                                    new org.hdn.api.object.Record.SendingApplication(
+                                    new Record.SendingApplication(
                                             "HDN Library",
                                             "1.0",
                                             Instant.now()
@@ -186,7 +186,7 @@ class HookTest {
             apiResponse = apiRecord.send(props.getProperty("senderNode"));
             assertThat(apiResponse.getResponse().statusCode()).isEqualTo(200);
 
-            List<org.hdn.api.object.Record> records = new RecordList().setStatus("new").setMessageType("ValidatieMelding").setSort("-creationDate").waitForMessage(10, 5000, props.getProperty("senderNode"));
+            List<Record> records = new RecordList().setStatus("new").setMessageType("ValidatieMelding").setSort("-creationDate").waitForMessage(10, 5000, props.getProperty("senderNode"));
             assertThat(records).isNotNull();
 
             Record responseRecord = records.getFirst().fetch(props.getProperty("senderNode"));

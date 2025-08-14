@@ -1,8 +1,8 @@
-package org.hdn.api.object;
+package nl.hdn.api.object;
 
-import org.hdn.api.APIConstants;
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
+import nl.hdn.api.APIConstants;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -48,6 +48,20 @@ public class HookList extends APIObject {
      */
     @SuppressWarnings("unused,UnusedReturnValue")
     public HookList get(String onBehalfOf) throws IOException, URISyntaxException, InterruptedException, JSONException {
+        return get(onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Retrieves all hooks based on the parameters and filter provided
+     *
+     * @return the HookList object itself
+     * @throws IOException          thrown when an IO error occurs
+     * @throws URISyntaxException   thrown when a URI syntax error occurs
+     * @throws InterruptedException thrown when an interrupted error occurs
+     * @throws JSONException        thrown when an error occurs in parsing the JSON
+     */
+    @SuppressWarnings("unused,UnusedReturnValue")
+    public HookList get(String onBehalfOf, APIController apiController) throws IOException, URISyntaxException, InterruptedException, JSONException {
         if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
             logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
             throw new InvalidParameterException("OnBehalfOf is required");
@@ -63,7 +77,7 @@ public class HookList extends APIObject {
 
                 // Process the get call
                 String uri = String.format(APIConstants.HOOKS_GET);
-                APIResponse apiResponse = APIController.getInstance().get(APIController.buildUrl(uri, params), onBehalfOf);
+                APIResponse apiResponse = apiController.get(APIController.buildUrl(uri, params), onBehalfOf);
 
                 // When the list of dossiers is returned
                 if (apiResponse.getResponse().statusCode() == 200) {
