@@ -1,8 +1,8 @@
-package org.hdn.api.object;
+package nl.hdn.api.object;
 
-import org.hdn.api.APIConstants;
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
+import nl.hdn.api.APIConstants;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -26,6 +26,7 @@ public class Record extends APIObject {
     private static final String FIELD_SCHEMA_VERSION = "schemaVersion";
     private static final String FIELD_RECEIVER_CODE = "receiverCode";
     private static final String FIELD_CONTENT_TYPE = "contentType";
+
     /**
      * The ExternalSource is used in a BronAanvraagBericht
      *
@@ -271,7 +272,7 @@ public class Record extends APIObject {
     }
 
     private void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
-        if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
+        if (onBehalfOf == null || !onBehalfOf.matches("\\d{6}")) {
             logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
             throw new InvalidParameterException("onBehalfOf is required");
         }
@@ -338,22 +339,37 @@ public class Record extends APIObject {
     }
 
     /**
-     * Fetches all data of the record from the HDN Platform of Trust
+     * Fetches all data of the record from the HDN Platform of Trust with the default API controller, with the default API controller
      *
+     * @param onBehalfOf the 6-digit nodenumber on behalf of which the request is made
      * @return the record object itself
      * @throws IOException          exception thrown when an IO error has occured
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused,UnusedReturnValue")
     public Record fetch(String onBehalfOf) throws IOException, InterruptedException {
+        return fetch(onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Fetches all data of the record from the HDN Platform of Trust
+     *
+     * @param onBehalfOf    the 6-digit nodenumber on behalf of which the request is made
+     * @param apiController the controller to be used for the API calls
+     * @return the record object itself
+     * @throws IOException          exception thrown when an IO error has occured
+     * @throws InterruptedException exception thrown when the API request to the platform was interrupted
+     */
+    @SuppressWarnings("unused,UnusedReturnValue")
+    public Record fetch(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
         validateOnBehalfOf(onBehalfOf);
-        APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.DOSSIER_GET_RECORD, dossierUuid, resourceUuid), onBehalfOf);
+        APIResponse apiResponse = apiController.get(String.format(APIConstants.DOSSIER_GET_RECORD, dossierUuid, resourceUuid), onBehalfOf);
 
         if (apiResponse.getResponse().statusCode() == 200) {
             updateAttributes(apiResponse.getBody());
 
             message = new String(Base64.getDecoder().decode(apiResponse.getBody().getJSONObject(FIELD_MESSAGE).getString("data")));
-            if(apiResponse.getBody().getJSONObject(FIELD_MESSAGE).has(FIELD_SIGNATURE)) {
+            if (apiResponse.getBody().getJSONObject(FIELD_MESSAGE).has(FIELD_SIGNATURE)) {
                 publicKey = apiResponse.getBody().getJSONObject(FIELD_MESSAGE).getJSONObject(FIELD_SIGNATURE).getJSONObject("publicKey").getString("uuid");
                 messageSigned = apiResponse.getBody().getJSONObject(FIELD_MESSAGE).getJSONObject(FIELD_SIGNATURE).getString(FIELD_VALUE).getBytes();
             }
@@ -362,14 +378,31 @@ public class Record extends APIObject {
     }
 
     /**
-     * Creates the record on the HDN Platform of Trust when the record has not been created yet
+     * Creates the record on the HDN Platform of Trust when the record has not been created yet, with the default API controller
      *
+     * @param onBehalfOf the 6-digit nodenumber on behalf of which the request is made
      * @return When a record is non-existing the result of the response of the platform, otherwise null
      * @throws IOException          exception thrown when an IO error has occured
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused")
     public APIResponse create(String onBehalfOf) throws IOException, InterruptedException {
+        return create(onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Creates the record on the HDN Platform of Trust when the record has not been created yet
+     *
+     * @param onBehalfOf    the 6-digit nodenumber on behalf of which the request is made
+     * @param apiController the controller to be used for the API calls
+     * @return When a record is non-existing the result of the response of the platform, otherwise null
+     * @throws IOException          exception thrown when an IO error has occured
+     * @throws InterruptedException exception thrown when the API request to the platform was interrupted
+     */
+    @SuppressWarnings("unused")
+    public APIResponse create(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
+        apiController = apiController == null ? APIController.getInstance() : apiController;
+
         if (resourceUuid == null) {
             validateOnBehalfOf(onBehalfOf);
 
@@ -421,7 +454,7 @@ public class Record extends APIObject {
                             .put("applicationVersion", miscellaneous.sendingApplication.applicationVersion)
                             .put("sendingDateTime", miscellaneous.sendingApplication.sendingDateTime)));
 
-            APIResponse apiResponse = APIController.getInstance().post(String.format(APIConstants.DOSSIER_CREATE_RECORD, dossierUuid), body.toString(), onBehalfOf);
+            APIResponse apiResponse = apiController.post(String.format(APIConstants.DOSSIER_CREATE_RECORD, dossierUuid), body.toString(), onBehalfOf);
 
             // When a record is created
             if (apiResponse.getResponse().statusCode() == 201) {
@@ -436,17 +469,34 @@ public class Record extends APIObject {
     }
 
     /**
-     * Sends a record that has been created
+     * Sends a record that has been created with the default API controller
      *
+     * @param onBehalfOf the 6-digit nodenumber on behalf of which the request is made
      * @return When a record exists the result of the response of the platform, otherwise null
      * @throws IOException          exception thrown when an IO error has occured
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused")
     public APIResponse send(String onBehalfOf) throws IOException, InterruptedException {
+        return send(onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Sends a record that has been created
+     *
+     * @param onBehalfOf    the 6-digit nodenumber on behalf of which the request is made
+     * @param apiController the controller to be used for the API calls
+     * @return When a record exists the result of the response of the platform, otherwise null
+     * @throws IOException          exception thrown when an IO error has occured
+     * @throws InterruptedException exception thrown when the API request to the platform was interrupted
+     */
+    @SuppressWarnings("unused")
+    public APIResponse send(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
+        apiController = apiController == null ? APIController.getInstance() : apiController;
+
         if (resourceUuid != null) {
             validateOnBehalfOf(onBehalfOf);
-            return APIController.getInstance().post(String.format(APIConstants.DOSSIER_SEND_RECORD, dossierUuid, resourceUuid), null, onBehalfOf);
+            return apiController.post(String.format(APIConstants.DOSSIER_SEND_RECORD, dossierUuid, resourceUuid), null, onBehalfOf);
         }
         logger.error("Couldn't send record, because record is not created yet!");
         return null;
@@ -476,17 +526,33 @@ public class Record extends APIObject {
     }
 
     /**
-     * Confirms the record on the HDN Platform of Trust to indicate the record has been processed by the receiver
+     * Confirms the record on the HDN Platform of Trust to indicate the record has been processed by the receiver with the default API controller
      *
+     * @param onBehalfOf the 6-digit nodenumber on behalf of which the request is made
      * @return When a record exists the result of the response of the platform, otherwise null
      * @throws IOException          exception thrown when an IO error has occured
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused,UnusedReturnValue")
     public APIResponse confirm(String onBehalfOf) throws IOException, InterruptedException {
+        return confirm(onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Confirms the record on the HDN Platform of Trust to indicate the record has been processed by the receiver
+     *
+     * @param onBehalfOf    the 6-digit nodenumber on behalf of which the request is made
+     * @param apiController the controller to be used for the API calls
+     * @return When a record exists the result of the response of the platform, otherwise null
+     * @throws IOException          exception thrown when an IO error has occured
+     * @throws InterruptedException exception thrown when the API request to the platform was interrupted
+     */
+    @SuppressWarnings("unused,UnusedReturnValue")
+    public APIResponse confirm(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
+        apiController = apiController == null ? APIController.getInstance() : apiController;
         if (resourceUuid != null) {
             validateOnBehalfOf(onBehalfOf);
-            return APIController.getInstance().post(String.format(APIConstants.DOSSIER_CONFIRM_RECORD, dossierUuid, resourceUuid), onBehalfOf);
+            return apiController.post(String.format(APIConstants.DOSSIER_CONFIRM_RECORD, dossierUuid, resourceUuid), onBehalfOf);
         }
         logger.error("Couldn't confirm record, because record is not created yet!");
         return null;
@@ -524,10 +590,13 @@ public class Record extends APIObject {
 
     /**
      * Returns the signature of the message
+     *
      * @return the signature
      */
     @SuppressWarnings("unused")
-    public byte[] getSignature() { return messageSigned; }
+    public byte[] getSignature() {
+        return messageSigned;
+    }
 
     /**
      * Returns the header object of the record
@@ -594,5 +663,7 @@ public class Record extends APIObject {
      *
      * @return the dossier uuid
      */
-    public String getDossierUuid() { return dossierUuid; }
+    public String getDossierUuid() {
+        return dossierUuid;
+    }
 }

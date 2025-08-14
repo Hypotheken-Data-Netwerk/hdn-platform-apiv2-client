@@ -1,10 +1,10 @@
 package general;
 
-import org.hdn.api.APIConstants;
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
-import org.hdn.api.object.Dossier;
-import org.hdn.api.object.Record;
+import nl.hdn.api.APIConstants;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
+import nl.hdn.api.object.Dossier;
+import nl.hdn.api.object.Record;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

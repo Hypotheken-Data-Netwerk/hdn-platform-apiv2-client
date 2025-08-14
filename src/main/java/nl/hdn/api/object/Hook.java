@@ -1,8 +1,8 @@
-package org.hdn.api.object;
+package nl.hdn.api.object;
 
-import org.hdn.api.APIConstants;
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
+import nl.hdn.api.APIConstants;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -80,6 +80,10 @@ public class Hook extends APIObject {
     }
 
     public APIResponse create(String onBehalfOf) throws IOException, InterruptedException {
+        return create(onBehalfOf, APIController.getInstance());
+    }
+
+    public APIResponse create(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
         if (this.resourceUuid == null) {
             validateOnBehalfOf(onBehalfOf);
 
@@ -90,7 +94,7 @@ public class Hook extends APIObject {
             if (authenticationMethod != null) body.put(FIELD_AUTHENTICATION_METHOD, authenticationMethod);
             if (certificateUuid != null) body.put(FIELD_CERTIFICATEUUID, certificateUuid);
 
-            APIResponse apiResponse = APIController.getInstance().post(String.format(APIConstants.HOOK_CREATE), body.toString(), onBehalfOf);
+            APIResponse apiResponse = apiController.post(String.format(APIConstants.HOOK_CREATE), body.toString(), onBehalfOf);
             if (apiResponse.getResponse().statusCode() == 201) {
                 updateAttributes(apiResponse.getBody());
             }
@@ -102,6 +106,10 @@ public class Hook extends APIObject {
     }
 
     public APIResponse update(String onBehalfOf) throws IOException, InterruptedException {
+        return update(onBehalfOf, APIController.getInstance());
+    }
+
+    public APIResponse update(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
         if (this.resourceUuid != null) {
             validateOnBehalfOf(onBehalfOf);
 
@@ -112,7 +120,7 @@ public class Hook extends APIObject {
             if (authenticationMethod != null) body.put(FIELD_AUTHENTICATION_METHOD, authenticationMethod);
             if (certificateUuid != null) body.put(FIELD_CERTIFICATEUUID, certificateUuid);
 
-            APIResponse apiResponse = APIController.getInstance().put(String.format(APIConstants.HOOK_PUT, this.resourceUuid), body.toString(), onBehalfOf);
+            APIResponse apiResponse = apiController.put(String.format(APIConstants.HOOK_PUT, this.resourceUuid), body.toString(), onBehalfOf);
             if (apiResponse.getResponse().statusCode() == 200) {
                 updateAttributes(apiResponse.getBody());
             }
@@ -132,9 +140,21 @@ public class Hook extends APIObject {
      */
     @SuppressWarnings("unused")
     public Hook fetch(String onBehalfOf) throws IOException, InterruptedException {
+        return fetch(onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Fetches a hook
+     *
+     * @return The hook object
+     * @throws IOException          exception thrown when an IO error has occured
+     * @throws InterruptedException exception thrown when the API request to the platform was interrupted
+     */
+    @SuppressWarnings("unused")
+    public Hook fetch(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
         validateOnBehalfOf(onBehalfOf);
 
-        APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.HOOK_GET, resourceUuid), onBehalfOf);
+        APIResponse apiResponse = apiController.get(String.format(APIConstants.HOOK_GET, resourceUuid), onBehalfOf);
 
         if (apiResponse.getResponse().statusCode() == 200) {
             updateAttributes(apiResponse.getBody());
@@ -143,10 +163,14 @@ public class Hook extends APIObject {
     }
 
     public APIResponse delete(String onBehalfOf) throws IOException, InterruptedException {
+        return delete(onBehalfOf, APIController.getInstance());
+    }
+
+    public APIResponse delete(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
         validateOnBehalfOf(onBehalfOf);
 
         logger.info("Deleting hook with resource uuid {}", resourceUuid);
-        APIResponse apiResponse = APIController.getInstance().delete(String.format(APIConstants.HOOK_DELETE, resourceUuid), onBehalfOf);
+        APIResponse apiResponse = apiController.delete(String.format(APIConstants.HOOK_DELETE, resourceUuid), onBehalfOf);
         logger.info("Resultcode was {}", apiResponse.getResponse().statusCode());
         if (apiResponse.getResponse().statusCode() == 204) {
             resourceUuid = null;

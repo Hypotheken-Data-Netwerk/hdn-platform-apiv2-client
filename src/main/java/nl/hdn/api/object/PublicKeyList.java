@@ -1,8 +1,8 @@
-package org.hdn.api.object;
+package nl.hdn.api.object;
 
-import org.hdn.api.APIConstants;
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
+import nl.hdn.api.APIConstants;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -46,6 +46,20 @@ public class PublicKeyList extends APIObject {
      */
     @SuppressWarnings("unused,UnusedReturnValue")
     public PublicKeyList get(String onBehalfOf) throws IOException, URISyntaxException, InterruptedException, JSONException {
+        return get(onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Retrieves all hooks based on the parameters and filter provided
+     *
+     * @return the HookList object itself
+     * @throws IOException          thrown when an IO error occurs
+     * @throws URISyntaxException   thrown when a URI syntax error occurs
+     * @throws InterruptedException thrown when an interrupted error occurs
+     * @throws JSONException        thrown when an error occurs in parsing the JSON
+     */
+    @SuppressWarnings("unused,UnusedReturnValue")
+    public PublicKeyList get(String onBehalfOf, APIController apiController) throws IOException, URISyntaxException, InterruptedException, JSONException {
         validateOnBehalfOf(onBehalfOf);
 
         try {
@@ -58,7 +72,7 @@ public class PublicKeyList extends APIObject {
 
                 // Process the get call
                 String uri = String.format(APIConstants.PUBLIC_KEYS_GET);
-                APIResponse apiResponse = APIController.getInstance().get(APIController.buildUrl(uri, params), onBehalfOf);
+                APIResponse apiResponse = apiController.get(APIController.buildUrl(uri, params), onBehalfOf);
 
                 // When the list of dossiers is returned
                 if (apiResponse.getResponse().statusCode() == 200) {
@@ -94,11 +108,25 @@ public class PublicKeyList extends APIObject {
      */
     @SuppressWarnings("unused,UnusedReturnValue")
     public List<String> getAlgorithms() throws IOException, URISyntaxException, InterruptedException, JSONException {
+        return getAlgorithms(APIController.getInstance());
+    }
+
+    /**
+     * Retrieves all supported algorithms
+     *
+     * @return a list of supported algorithms
+     * @throws IOException          thrown when an IO error occurs
+     * @throws URISyntaxException   thrown when a URI syntax error occurs
+     * @throws InterruptedException thrown when an interrupted error occurs
+     * @throws JSONException        thrown when an error occurs in parsing the JSON
+     */
+    @SuppressWarnings("unused,UnusedReturnValue")
+    public List<String> getAlgorithms(APIController apiController) throws IOException, URISyntaxException, InterruptedException, JSONException {
         List<String> algorithms = new ArrayList<>();
         try {
             // Process the get call
             String uri = String.format(APIConstants.PUBLIC_KEY_ALGORITHM);
-            APIResponse apiResponse = APIController.getInstance().get(APIController.buildUrl(uri, new HashMap<>()));
+            APIResponse apiResponse = apiController.get(APIController.buildUrl(uri, new HashMap<>()));
 
             // When the list of dossiers is returned
             if (apiResponse.getResponse().statusCode() == 200) {

@@ -1,4 +1,4 @@
-package org.hdn.api;
+package nl.hdn.api;
 
 import java.util.List;
 

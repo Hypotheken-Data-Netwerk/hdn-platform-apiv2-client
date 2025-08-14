@@ -1,8 +1,8 @@
-package org.hdn.api.object;
+package nl.hdn.api.object;
 
-import org.hdn.api.APIConstants;
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
+import nl.hdn.api.APIConstants;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -53,8 +53,9 @@ public class DossierList extends APIObject {
     private String originalNodes = null;
 
     /**
-     * Retrieves all dossiers based on the parameters and filter provided
+     * Retrieves all dossiers based on the parameters and filter provided, with the default API controller
      *
+     * @param onBehalfOf the 6-digit nodenumber on behalf of which the request is made
      * @return the DossierList object itself
      * @throws IOException          thrown when an IO error occurs
      * @throws URISyntaxException   thrown when a URI syntax error occurs
@@ -62,6 +63,21 @@ public class DossierList extends APIObject {
      */
     @SuppressWarnings("unused,UnusedReturnValue")
     public DossierList get(String onBehalfOf) throws IOException, URISyntaxException, InterruptedException {
+        return get(onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Retrieves all dossiers based on the parameters and filter provided
+     *
+     * @param onBehalfOf    the 6-digit nodenumber on behalf of which the request is made
+     * @param apiController the controller to be used for the API calls
+     * @return the DossierList object itself
+     * @throws IOException          thrown when an IO error occurs
+     * @throws URISyntaxException   thrown when a URI syntax error occurs
+     * @throws InterruptedException thrown when an interrupted error occurs
+     */
+    @SuppressWarnings("unused,UnusedReturnValue")
+    public DossierList get(String onBehalfOf, APIController apiController) throws IOException, URISyntaxException, InterruptedException {
         try {
             dossiers.clear();
             Integer total = 0;
@@ -71,7 +87,7 @@ public class DossierList extends APIObject {
                 Map<String, String> params = buildParams(loopOffset);
 
                 // Process the get call
-                APIResponse apiResponse = APIController.getInstance().get(APIController.buildUrl(APIConstants.DOSSIERS_GET, params), onBehalfOf);
+                APIResponse apiResponse = apiController.get(APIController.buildUrl(APIConstants.DOSSIERS_GET, params), onBehalfOf);
 
                 // When the list of dossiers is returned
                 if (apiResponse.getResponse().statusCode() == 200) {

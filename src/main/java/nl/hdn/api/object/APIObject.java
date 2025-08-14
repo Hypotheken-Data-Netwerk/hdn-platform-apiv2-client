@@ -1,4 +1,4 @@
-package org.hdn.api.object;
+package nl.hdn.api.object;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

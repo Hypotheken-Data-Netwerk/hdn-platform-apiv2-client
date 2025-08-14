@@ -1,9 +1,9 @@
 package general;
 
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
-import org.hdn.api.object.*;
-import org.hdn.api.object.PublicKey;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
+import nl.hdn.api.object.PublicKeyList;
+import nl.hdn.api.object.PublicKey;
 import org.junit.jupiter.api.*;
 
 import java.io.FileInputStream;
@@ -12,7 +12,6 @@ import java.net.*;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.Properties;

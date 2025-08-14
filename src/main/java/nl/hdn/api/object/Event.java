@@ -1,8 +1,8 @@
-package org.hdn.api.object;
+package nl.hdn.api.object;
 
-import org.hdn.api.APIConstants;
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
+import nl.hdn.api.APIConstants;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -60,7 +60,7 @@ public class Event extends APIObject {
     }
 
     /**
-     * Fetches an event
+     * Fetches an event, with the default API controller
      *
      * @return The event object
      * @throws IOException          exception thrown when an IO error has occured
@@ -68,8 +68,21 @@ public class Event extends APIObject {
      */
     @SuppressWarnings("unused")
     public Event fetch() throws IOException, InterruptedException {
+        return fetch(APIController.getInstance());
+    }
+
+    /**
+     * Fetches an event
+     *
+     * @param apiController the controller to be used for the API calls
+     * @return The event object
+     * @throws IOException          exception thrown when an IO error has occured
+     * @throws InterruptedException exception thrown when the API request to the platform was interrupted
+     */
+    @SuppressWarnings("unused")
+    public Event fetch(APIController apiController) throws IOException, InterruptedException {
         if (dossierUuid != null && recordUuid != null && resourceUuid != null) {
-            APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.EVENT_GET, dossierUuid, recordUuid, resourceUuid));
+            APIResponse apiResponse = apiController.get(String.format(APIConstants.EVENT_GET, dossierUuid, recordUuid, resourceUuid));
 
             if (apiResponse.getResponse().statusCode() == 200) {
                 updateAttributes(apiResponse.getBody());

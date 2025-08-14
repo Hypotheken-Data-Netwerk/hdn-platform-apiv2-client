@@ -1,8 +1,8 @@
-package org.hdn.api.object;
+package nl.hdn.api.object;
 
-import org.hdn.api.APIConstants;
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
+import nl.hdn.api.APIConstants;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -93,6 +93,19 @@ public class RecordList extends APIObject {
      */
     @SuppressWarnings("unused,UnusedReturnValue")
     public RecordList get(String onBehalfOf) throws IOException, URISyntaxException, InterruptedException, JSONException {
+        return get(onBehalfOf, APIController.getInstance());
+    }
+    /**
+     * Retrieves all records based on the parameters and filter provided
+     *
+     * @return the RecordList object itself
+     * @throws IOException          thrown when an IO error occurs
+     * @throws URISyntaxException   thrown when a URI syntax error occurs
+     * @throws InterruptedException thrown when an interrupted error occurs
+     * @throws JSONException        thrown when an error occurs in parsing the JSON
+     */
+    @SuppressWarnings("unused,UnusedReturnValue")
+    public RecordList get(String onBehalfOf, APIController apiController) throws IOException, URISyntaxException, InterruptedException, JSONException {
         try {
             records.clear();
             Integer total = 0;
@@ -103,7 +116,7 @@ public class RecordList extends APIObject {
 
                 // Process the get call
                 String uri = this.dossierUuid == null ? APIConstants.RECORDS_GET : String.format(APIConstants.DOSSIER_GET_RECORDS, dossierUuid);
-                APIResponse apiResponse = APIController.getInstance().get(APIController.buildUrl(uri, params), onBehalfOf);
+                APIResponse apiResponse = apiController.get(APIController.buildUrl(uri, params), onBehalfOf);
 
                 // When the list of dossiers is returned
                 if (apiResponse.getResponse().statusCode() == 200) {
@@ -302,11 +315,19 @@ public class RecordList extends APIObject {
      */
     @SuppressWarnings("unused")
     public void confirmAllRecords(String onBehalfOf) {
+        confirmAllRecords(onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Confirms all filtered records
+     */
+    @SuppressWarnings("unused")
+    public void confirmAllRecords(String onBehalfOf, APIController apiController) {
         getRecords().forEach(r -> {
             try {
                 logger.info("Confirming record with UUID: {}", r.getResourceUuid());
-                r.fetch(onBehalfOf);
-                r.confirm(onBehalfOf);
+                r.fetch(onBehalfOf, apiController);
+                r.confirm(onBehalfOf, apiController);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             } catch (InterruptedException e) {
@@ -328,11 +349,25 @@ public class RecordList extends APIObject {
      */
     @SuppressWarnings("unused")
     public List<Record> waitForMessage(int maxRetries, int waitTime, String onBehalfOf) throws IOException, URISyntaxException, InterruptedException {
+        return waitForMessage(maxRetries, waitTime, onBehalfOf, APIController.getInstance());
+    }
+    /**
+     * Blocks the process to wait for the receival of minimal one message with the given parameters
+     *
+     * @param maxRetries the max number of retries before ending the block
+     * @param waitTime   the wait time between each retry
+     * @return A list with the records found, an empty list indicates that the max retries have occured
+     * @throws IOException          thrown when an IO error occurs
+     * @throws URISyntaxException   thrown when a URI syntax error occurs
+     * @throws InterruptedException thrown when an interrupted error occurs
+     */
+    @SuppressWarnings("unused")
+    public List<Record> waitForMessage(int maxRetries, int waitTime, String onBehalfOf, APIController apiController) throws IOException, URISyntaxException, InterruptedException {
         int retryCounter = 0;
         while (retryCounter <= maxRetries) {
-            List<Record> responseRecords = get(onBehalfOf).getRecords();
+            List<Record> responseRecords = get(onBehalfOf, apiController).getRecords();
             if (responseRecords.isEmpty()) {
-                logger.info("Message not found");
+                logger.info("Message not found ({}/{})", retryCounter+1, maxRetries);
                 retryCounter++;
                 if (retryCounter <= maxRetries) {
                     Thread.sleep(waitTime);

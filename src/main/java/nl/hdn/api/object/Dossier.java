@@ -1,8 +1,8 @@
-package org.hdn.api.object;
+package nl.hdn.api.object;
 
-import org.hdn.api.APIConstants;
-import org.hdn.api.APIController;
-import org.hdn.api.APIResponse;
+import nl.hdn.api.APIConstants;
+import nl.hdn.api.APIController;
+import nl.hdn.api.APIResponse;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -60,27 +60,42 @@ public class Dossier extends APIObject {
     }
 
     private void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
-        if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
+        if (onBehalfOf == null || !onBehalfOf.matches("\\d{6}")) {
             logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
             throw new InvalidParameterException("onBehalfOf is required");
         }
     }
 
     /**
-     * Creates a dossier on the platform when the dossier has not been created yet
+     * Creates a dossier on the platform when the dossier has not been created yet, with the default controller
      *
+     * @param onBehalfOf the 6-digit nodenumber on behalf of which the request is made
      * @return When a dossier is non-existing the result of the response of the platform, otherwise null
      * @throws IOException          exception thrown when an IO error has occured
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused")
     public APIResponse create(String onBehalfOf) throws IOException, InterruptedException {
+        return create(onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Creates a dossier on the platform when the dossier has not been created yet
+     *
+     * @param onBehalfOf    the 6-digit nodenumber on behalf of which the request is made
+     * @param apiController the controller to be used for the API calls
+     * @return When a dossier is non-existing the result of the response of the platform, otherwise null
+     * @throws IOException          exception thrown when an IO error has occured
+     * @throws InterruptedException exception thrown when the API request to the platform was interrupted
+     */
+    @SuppressWarnings("unused")
+    public APIResponse create(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
         // If the resource is not created
         if (resourceUuid == null) {
             validateOnBehalfOf(onBehalfOf);
 
             // Process the post call
-            APIResponse apiResponse = APIController.getInstance().post(APIConstants.DOSSIER_CREATE, onBehalfOf);
+            APIResponse apiResponse = apiController.post(APIConstants.DOSSIER_CREATE, onBehalfOf);
 
             // When a dossier is created
             if (apiResponse.getResponse().statusCode() == 201) {
@@ -99,17 +114,32 @@ public class Dossier extends APIObject {
     /**
      * Fetches a dossier
      *
+     * @param onBehalfOf the 6-digit nodenumber on behalf of which the request is made, with the default controller
      * @return The dossier object
      * @throws IOException          exception thrown when an IO error has occured
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused")
     public Dossier fetch(String onBehalfOf) throws IOException, InterruptedException {
+        return fetch(onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Fetches a dossier
+     *
+     * @param onBehalfOf    the 6-digit nodenumber on behalf of which the request is made
+     * @param apiController the controller to be used for the API calls
+     * @return The dossier object
+     * @throws IOException          exception thrown when an IO error has occured
+     * @throws InterruptedException exception thrown when the API request to the platform was interrupted
+     */
+    @SuppressWarnings("unused")
+    public Dossier fetch(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
         if (resourceUuid != null) {
             validateOnBehalfOf(onBehalfOf);
 
             // Process the get call
-            APIResponse apiResponse = APIController.getInstance().get(String.format(APIConstants.DOSSIER_GET, resourceUuid), onBehalfOf);
+            APIResponse apiResponse = apiController.get(String.format(APIConstants.DOSSIER_GET, resourceUuid), onBehalfOf);
 
             // When the dossier is returned
             if (apiResponse.getResponse().statusCode() == 200) {
@@ -125,15 +155,31 @@ public class Dossier extends APIObject {
     }
 
     /**
-     * Adds a node to the dossier on the HDN Platform Of Trust
+     * Adds a node to the dossier on the HDN Platform Of Trust, with the default controller
      *
-     * @param node Node to be added
+     * @param node       Node to be added
+     * @param onBehalfOf the 6-digit nodenumber on behalf of which the request is made
      * @return The dossier object
      * @throws IOException          exception thrown when an IO error has occured
      * @throws InterruptedException exception thrown when the API request to the platform was interrupted
      */
     @SuppressWarnings("unused")
     public Dossier addNode(String node, String onBehalfOf) throws IOException, InterruptedException {
+        return addNode(node, onBehalfOf, APIController.getInstance());
+    }
+
+    /**
+     * Adds a node to the dossier on the HDN Platform Of Trust
+     *
+     * @param node          Node to be added
+     * @param onBehalfOf    the 6-digit nodenumber on behalf of which the request is made
+     * @param apiController the controller to be used for the API calls, will resolve the default controller when null is supplied
+     * @return The dossier object
+     * @throws IOException          exception thrown when an IO error has occured
+     * @throws InterruptedException exception thrown when the API request to the platform was interrupted
+     */
+    @SuppressWarnings("unused")
+    public Dossier addNode(String node, String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
         if (resourceUuid != null) {
             validateOnBehalfOf(onBehalfOf);
 
@@ -141,7 +187,7 @@ public class Dossier extends APIObject {
             body.put("node", node);
 
             // Process the post call
-            APIResponse apiResponse = APIController.getInstance().post(String.format(APIConstants.DOSSIER_ADD_NODE, resourceUuid), body.toString(), onBehalfOf);
+            APIResponse apiResponse = apiController.post(String.format(APIConstants.DOSSIER_ADD_NODE, resourceUuid), body.toString(), onBehalfOf);
 
             // When a dossier is created
             if (apiResponse.getResponse().statusCode() == 200) {
@@ -248,10 +294,10 @@ public class Dossier extends APIObject {
      * of the dossier is returned, otherwise null
      * Remark: the requestTraceNr is deprecated and will be removed.
      *
-     * @deprecated
      * @return the requestTraceNr or null
+     * @deprecated
      */
-    @Deprecated(since="2.9.0", forRemoval = true)
+    @Deprecated(since = "2.9.0", forRemoval = true)
     @SuppressWarnings("unused")
     public String getRequestTraceNr() {
         logger.info("Use of requestTraceNr is deprecated.");
