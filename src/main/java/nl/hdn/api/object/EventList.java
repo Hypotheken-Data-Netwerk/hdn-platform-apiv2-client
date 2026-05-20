@@ -37,6 +37,8 @@ public class EventList extends APIObject {
      */
     private String timestampOperator = null;
 
+    private APIResponse lastApiResponse;
+
     @SuppressWarnings("unused")
     public EventList(String dossierUuid) {
         this.dossierUuid = dossierUuid;
@@ -86,6 +88,7 @@ public class EventList extends APIObject {
                 String uri = this.recordUuid == null ? String.format(APIConstants.DOSSIER_GET_EVENTS, dossierUuid) : String.format(APIConstants.RECORD_GET_EVENTS, dossierUuid, recordUuid);
                 logger.info(uri);
                 APIResponse apiResponse = apiController.get(APIController.buildUrl(uri, params));
+                lastApiResponse = apiResponse;
 
                 // When the list of dossiers is returned
                 if (apiResponse.getResponse().statusCode() == 200) {
@@ -198,5 +201,9 @@ public class EventList extends APIObject {
     public EventList setResourceUuid(String resourceUuid) {
         this.resourceUuid = resourceUuid;
         return this;
+    }
+
+    public APIResponse getLastApiResponse() {
+        return lastApiResponse;
     }
 }

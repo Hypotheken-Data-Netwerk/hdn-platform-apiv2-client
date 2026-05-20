@@ -51,6 +51,7 @@ public class DossierList extends APIObject {
      * The original nodes of the dossiers
      */
     private String originalNodes = null;
+    private APIResponse lastApiResponse;
 
     /**
      * Retrieves all dossiers based on the parameters and filter provided, with the default API controller
@@ -88,12 +89,13 @@ public class DossierList extends APIObject {
 
                 // Process the get call
                 APIResponse apiResponse = apiController.get(APIController.buildUrl(APIConstants.DOSSIERS_GET, params), onBehalfOf);
+                lastApiResponse = apiResponse;
 
                 // When the list of dossiers is returned
                 if (apiResponse.getResponse().statusCode() == 200) {
                     JSONArray dossierList = apiResponse.getBody().getJSONObject("data").getJSONArray("dossiers");
                     for (Object dossier : dossierList) {
-                        Dossier tmp = new Dossier(((JSONObject) dossier).getString(APIConstants.RESOURCE_UUID));
+                        Dossier tmp = new Dossier(((JSONObject) dossier).getString(APIConstants.RESOURCE_UUID), ((JSONObject) dossier));
                         this.dossiers.add(tmp);
                     }
 
@@ -251,5 +253,9 @@ public class DossierList extends APIObject {
     public DossierList setOriginalNodes(String originalNodes) {
         this.originalNodes = originalNodes;
         return this;
+    }
+
+    public APIResponse getLastApiResponse() {
+        return lastApiResponse;
     }
 }

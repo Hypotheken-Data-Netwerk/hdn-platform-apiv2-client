@@ -36,6 +36,7 @@ public class HookList extends APIObject {
      */
     private String timestampOperator = null;
     private String messageTypes = null;
+    private APIResponse lastApiResponse;
 
     /**
      * Retrieves all hooks based on the parameters and filter provided
@@ -78,6 +79,7 @@ public class HookList extends APIObject {
                 // Process the get call
                 String uri = String.format(APIConstants.HOOKS_GET);
                 APIResponse apiResponse = apiController.get(APIController.buildUrl(uri, params), onBehalfOf);
+                lastApiResponse = apiResponse;
 
                 // When the list of dossiers is returned
                 if (apiResponse.getResponse().statusCode() == 200) {
@@ -203,5 +205,9 @@ public class HookList extends APIObject {
     public HookList setMessageTypes(String messageTypes) {
         this.messageTypes = messageTypes;
         return this;
+    }
+
+    public APIResponse getLastApiResponse() {
+        return lastApiResponse;
     }
 }

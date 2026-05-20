@@ -3,6 +3,7 @@ package nl.hdn.api.object;
 import nl.hdn.api.APIConstants;
 import nl.hdn.api.APIController;
 import nl.hdn.api.APIResponse;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -23,6 +24,7 @@ public class Dossier extends APIObject {
     private Instant creationDate;
     private RecordList recordList;
     private EventList eventList;
+    private APIResponse lastApiResponse;
 
     /**
      * Construct a new dossier
@@ -42,6 +44,19 @@ public class Dossier extends APIObject {
     }
 
     /**
+     * Construct an existing dossier
+     *
+     * @param resourceUuid The uuid of the dossier
+     * @param attributes   The attributes of the dossier
+     */
+    public Dossier(String resourceUuid, JSONObject attributes) {
+        this.resourceUuid = resourceUuid;
+        recordList = new RecordList(resourceUuid);
+        eventList = new EventList(resourceUuid);
+        updateAttributes(attributes);
+    }
+
+    /**
      * Updates the attributes, based on the JSON object returned by the platform
      *
      * @param attributes a collection of attributes returned by the platform
@@ -57,13 +72,6 @@ public class Dossier extends APIObject {
         creationDate = Instant.parse(attributes.getString("creationDate"));
         recordList = new RecordList(resourceUuid);
         eventList = new EventList(resourceUuid);
-    }
-
-    private void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
-        if (onBehalfOf == null || !onBehalfOf.matches("\\d{6}")) {
-            logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
-            throw new InvalidParameterException("onBehalfOf is required");
-        }
     }
 
     /**
@@ -96,6 +104,7 @@ public class Dossier extends APIObject {
 
             // Process the post call
             APIResponse apiResponse = apiController.post(APIConstants.DOSSIER_CREATE, onBehalfOf);
+            lastApiResponse = apiResponse;
 
             // When a dossier is created
             if (apiResponse.getResponse().statusCode() == 201) {
@@ -140,6 +149,7 @@ public class Dossier extends APIObject {
 
             // Process the get call
             APIResponse apiResponse = apiController.get(String.format(APIConstants.DOSSIER_GET, resourceUuid), onBehalfOf);
+            lastApiResponse = apiResponse;
 
             // When the dossier is returned
             if (apiResponse.getResponse().statusCode() == 200) {
@@ -188,6 +198,7 @@ public class Dossier extends APIObject {
 
             // Process the post call
             APIResponse apiResponse = apiController.post(String.format(APIConstants.DOSSIER_ADD_NODE, resourceUuid), body.toString(), onBehalfOf);
+            lastApiResponse = apiResponse;
 
             // When a dossier is created
             if (apiResponse.getResponse().statusCode() == 200) {
@@ -302,5 +313,9 @@ public class Dossier extends APIObject {
     public String getRequestTraceNr() {
         logger.info("Use of requestTraceNr is deprecated.");
         return requestTraceNr;
+    }
+
+    public APIResponse getLastApiResponse() {
+        return lastApiResponse;
     }
 }

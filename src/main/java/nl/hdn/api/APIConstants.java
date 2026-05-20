@@ -78,7 +78,8 @@ public class APIConstants {
     }
 
     public enum ContentType {
-        XML
+        XML,
+        JSON
     }
 
     public static final String HEADER_AUTH = "Authorization";

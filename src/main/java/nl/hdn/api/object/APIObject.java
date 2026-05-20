@@ -1,15 +1,29 @@
 package nl.hdn.api.object;
 
+import nl.hdn.api.ConfigUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
+import java.security.InvalidParameterException;
 
 /**
  * The base object of all API objects
  */
 public class APIObject {
     protected final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    protected void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
+        if (ConfigUtils.getBoolean(ConfigUtils.SKIP_ONBEHALFOF_VALIDATION, false)) {
+            logger.info("Skipping onBehalfOf validation ({}=true).", ConfigUtils.SKIP_ONBEHALFOF_VALIDATION);
+            return;
+        }
+
+        if (onBehalfOf == null || !onBehalfOf.matches("\\d{6}")) {
+            logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
+            throw new InvalidParameterException("onBehalfOf is required");
+        }
+    }
 
     /**
      * Returns a String representation of the APIObject

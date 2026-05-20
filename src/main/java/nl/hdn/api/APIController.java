@@ -218,8 +218,8 @@ public class APIController {
         String form = "grant_type=password&" + "client_id=" + clientID + "&" + "client_secret=" + clientSecret + "&" + "scope=openid profile";
         HttpRequest request = HttpRequest.newBuilder().uri(URI.create(authURL + "/auth/realms/platformoftrust/protocol/openid-connect/token")).header("Content-Type", "application/x-www-form-urlencoded").POST(HttpRequest.BodyPublishers.ofString(form)).build();
         HttpResponse<String> response;
-        try (HttpClient client = HttpClient.newBuilder().sslContext(sslContext).build()) {
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        try (HttpClient tokenClient = HttpClient.newBuilder().sslContext(sslContext).build()) {
+            response = tokenClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             JSONObject obj = new JSONObject(response.body());
             accessToken = obj.getString("access_token");
@@ -232,19 +232,17 @@ public class APIController {
     }
 
     private static HttpRequest.Builder setOnBehalfOf(HttpRequest.Builder builder, String node) {
-        if (node != null && !node.isBlank()) {
-            if (node.matches("\\d{6}")) {
-                builder.header("x-on-behalf-of", node);
-            } else {
+        if(node!=null) {
+            if (!node.matches("\\d{6}") && !ConfigUtils.getBoolean(ConfigUtils.SKIP_ONBEHALFOF_VALIDATION, false)) {
                 logger.error("Provided node number {} should be 6 digits", node);
-                throw new NumberFormatException("Node number should be 6 digits");
             }
+            builder.header("x-on-behalf-of", node);
         }
+
         return builder;
     }
 
     private static final HttpClient client = HttpClient.newBuilder()
-            //.version(HttpClient.Version.HTTP_1_1) // of HTTP_2 als stabiel
             .build();
 
     /**

@@ -16,6 +16,7 @@ public class Event extends APIObject {
     private String sub;
     private String businessKey;
     private Instant timestamp;
+    private APIResponse lastApiResponse;
 
     /**
      * Constructs an existing event, without attributes
@@ -83,6 +84,7 @@ public class Event extends APIObject {
     public Event fetch(APIController apiController) throws IOException, InterruptedException {
         if (dossierUuid != null && recordUuid != null && resourceUuid != null) {
             APIResponse apiResponse = apiController.get(String.format(APIConstants.EVENT_GET, dossierUuid, recordUuid, resourceUuid));
+            lastApiResponse = apiResponse;
 
             if (apiResponse.getResponse().statusCode() == 200) {
                 updateAttributes(apiResponse.getBody());
@@ -161,5 +163,9 @@ public class Event extends APIObject {
     @SuppressWarnings("unused")
     public String getRecordUuid() {
         return recordUuid;
+    }
+
+    public APIResponse getLastApiResponse() {
+        return lastApiResponse;
     }
 }

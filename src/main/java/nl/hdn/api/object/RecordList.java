@@ -63,6 +63,7 @@ public class RecordList extends APIObject {
      * The sortation of the records
      */
     private String sort = null;
+    private APIResponse lastApiResponse;
 
     /**
      * Constructs a new record list object
@@ -117,6 +118,7 @@ public class RecordList extends APIObject {
                 // Process the get call
                 String uri = this.dossierUuid == null ? APIConstants.RECORDS_GET : String.format(APIConstants.DOSSIER_GET_RECORDS, dossierUuid);
                 APIResponse apiResponse = apiController.get(APIController.buildUrl(uri, params), onBehalfOf);
+                lastApiResponse = apiResponse;
 
                 // When the list of dossiers is returned
                 if (apiResponse.getResponse().statusCode() == 200) {
@@ -379,5 +381,9 @@ public class RecordList extends APIObject {
         }
         logger.info("Max retries reached");
         return List.of();
+    }
+
+    public APIResponse getLastApiResponse() {
+        return lastApiResponse;
     }
 }

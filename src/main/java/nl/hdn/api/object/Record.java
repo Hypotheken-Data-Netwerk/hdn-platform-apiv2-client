@@ -187,6 +187,8 @@ public class Record extends APIObject {
      */
     private EventList eventList;
 
+    private APIResponse lastApiResponse;
+
     /**
      * Construct a new record
      *
@@ -269,13 +271,6 @@ public class Record extends APIObject {
         status = new Status(statusObject.getString(FIELD_VALUE), Instant.parse(statusObject.getString("modifiedTimestamp")));
         dossierUuid = attributes.getString("dossierUuid");
         eventList = new EventList(dossierUuid, resourceUuid);
-    }
-
-    private void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
-        if (onBehalfOf == null || !onBehalfOf.matches("\\d{6}")) {
-            logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
-            throw new InvalidParameterException("onBehalfOf is required");
-        }
     }
 
     /**
@@ -364,14 +359,19 @@ public class Record extends APIObject {
     public Record fetch(String onBehalfOf, APIController apiController) throws IOException, InterruptedException {
         validateOnBehalfOf(onBehalfOf);
         APIResponse apiResponse = apiController.get(String.format(APIConstants.DOSSIER_GET_RECORD, dossierUuid, resourceUuid), onBehalfOf);
+        lastApiResponse = apiResponse;
 
         if (apiResponse.getResponse().statusCode() == 200) {
             updateAttributes(apiResponse.getBody());
 
-            message = new String(Base64.getDecoder().decode(apiResponse.getBody().getJSONObject(FIELD_MESSAGE).getString("data")));
-            if (apiResponse.getBody().getJSONObject(FIELD_MESSAGE).has(FIELD_SIGNATURE)) {
-                publicKey = apiResponse.getBody().getJSONObject(FIELD_MESSAGE).getJSONObject(FIELD_SIGNATURE).getJSONObject("publicKey").getString("uuid");
-                messageSigned = apiResponse.getBody().getJSONObject(FIELD_MESSAGE).getJSONObject(FIELD_SIGNATURE).getString(FIELD_VALUE).getBytes();
+            if(apiResponse.getBody().has(FIELD_MESSAGE)) {
+                if (apiResponse.getBody().getJSONObject(FIELD_MESSAGE).has("data")) {
+                    message = new String(Base64.getDecoder().decode(apiResponse.getBody().getJSONObject(FIELD_MESSAGE).getString("data")));
+                }
+                if (apiResponse.getBody().getJSONObject(FIELD_MESSAGE).has(FIELD_SIGNATURE)) {
+                    publicKey = apiResponse.getBody().getJSONObject(FIELD_MESSAGE).getJSONObject(FIELD_SIGNATURE).getJSONObject("publicKey").getString("uuid");
+                    messageSigned = apiResponse.getBody().getJSONObject(FIELD_MESSAGE).getJSONObject(FIELD_SIGNATURE).getString(FIELD_VALUE).getBytes();
+                }
             }
         }
         return this;
@@ -455,6 +455,7 @@ public class Record extends APIObject {
                             .put("sendingDateTime", miscellaneous.sendingApplication.sendingDateTime)));
 
             APIResponse apiResponse = apiController.post(String.format(APIConstants.DOSSIER_CREATE_RECORD, dossierUuid), body.toString(), onBehalfOf);
+            lastApiResponse = apiResponse;
 
             // When a record is created
             if (apiResponse.getResponse().statusCode() == 201) {
@@ -496,7 +497,9 @@ public class Record extends APIObject {
 
         if (resourceUuid != null) {
             validateOnBehalfOf(onBehalfOf);
-            return apiController.post(String.format(APIConstants.DOSSIER_SEND_RECORD, dossierUuid, resourceUuid), null, onBehalfOf);
+            APIResponse apiResponse = apiController.post(String.format(APIConstants.DOSSIER_SEND_RECORD, dossierUuid, resourceUuid), null, onBehalfOf);
+            lastApiResponse = apiResponse;
+            return apiResponse;
         }
         logger.error("Couldn't send record, because record is not created yet!");
         return null;
@@ -516,7 +519,24 @@ public class Record extends APIObject {
      */
     @SuppressWarnings("unused")
     public Record signMessage() throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, InvalidKeyException, SignatureException {
-        PrivateKey pk = APIController.getInstance().getPrivateKey();
+        return signMessage(APIController.getInstance());
+    }
+
+    /**
+     * Signs the message with the configured key
+     *
+     * @return the record object itself
+     * @throws IOException               exception thrown when an IO error has occured
+     * @throws KeyStoreException         exception thrown when a keystore error has occured
+     * @throws CertificateException      exception thrown when a certificate error has occured
+     * @throws NoSuchAlgorithmException  exception thrown when an algorithm error has occured
+     * @throws UnrecoverableKeyException exception thrown when an unreceoverable key error has ooccured
+     * @throws InvalidKeyException       exception thrown when an invalid key error has occured
+     * @throws SignatureException        exception thrown when a signature error has occured
+     */
+    @SuppressWarnings("unused")
+    public Record signMessage(APIController apiController) throws IOException, KeyStoreException, CertificateException, NoSuchAlgorithmException, UnrecoverableKeyException, InvalidKeyException, SignatureException {
+        PrivateKey pk = apiController.getPrivateKey();
         Signature signature = Signature.getInstance("SHA256withRSA");
         signature.initSign(pk);
         signature.update(message.getBytes(StandardCharsets.UTF_8));
@@ -535,7 +555,9 @@ public class Record extends APIObject {
      */
     @SuppressWarnings("unused,UnusedReturnValue")
     public APIResponse confirm(String onBehalfOf) throws IOException, InterruptedException {
-        return confirm(onBehalfOf, APIController.getInstance());
+        APIResponse apiResponse = confirm(onBehalfOf, APIController.getInstance());
+        lastApiResponse = apiResponse;
+        return apiResponse;
     }
 
     /**
@@ -552,7 +574,9 @@ public class Record extends APIObject {
         apiController = apiController == null ? APIController.getInstance() : apiController;
         if (resourceUuid != null) {
             validateOnBehalfOf(onBehalfOf);
-            return apiController.post(String.format(APIConstants.DOSSIER_CONFIRM_RECORD, dossierUuid, resourceUuid), onBehalfOf);
+            APIResponse apiResponse = apiController.post(String.format(APIConstants.DOSSIER_CONFIRM_RECORD, dossierUuid, resourceUuid), onBehalfOf);
+            lastApiResponse = apiResponse;
+            return apiResponse;
         }
         logger.error("Couldn't confirm record, because record is not created yet!");
         return null;
@@ -665,5 +689,9 @@ public class Record extends APIObject {
      */
     public String getDossierUuid() {
         return dossierUuid;
+    }
+
+    public APIResponse getLastApiResponse() {
+        return lastApiResponse;
     }
 }

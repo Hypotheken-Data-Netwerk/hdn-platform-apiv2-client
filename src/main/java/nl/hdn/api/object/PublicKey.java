@@ -14,6 +14,7 @@ public class PublicKey extends APIObject {
     private String algorithm;
     private String publicKeyValue;
     private String sub;
+    private APIResponse lastApiResponse;
 
     public PublicKey() {
 
@@ -54,13 +55,6 @@ public class PublicKey extends APIObject {
         sub = attributes.getString("sub");
     }
 
-    private void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
-        if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
-            logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
-            throw new InvalidParameterException("onBehalfOf is required");
-        }
-    }
-
     public APIResponse create(String onBehalfOf) throws IOException, InterruptedException {
         return create(onBehalfOf, APIController.getInstance());
     }
@@ -77,6 +71,8 @@ public class PublicKey extends APIObject {
             body.put("data", data);
 
             APIResponse apiResponse = apiController.post(String.format(APIConstants.PUBLIC_KEY_CREATE), body.toString(), onBehalfOf);
+            lastApiResponse = apiResponse;
+
             if (apiResponse.getResponse().statusCode() == 201) {
                 updateAttributes(apiResponse.getBody());
             }
@@ -111,6 +107,7 @@ public class PublicKey extends APIObject {
         validateOnBehalfOf(onBehalfOf);
 
         APIResponse apiResponse = apiController.get(String.format(APIConstants.PUBLIC_KEY_GET, resourceUuid), onBehalfOf);
+        lastApiResponse = apiResponse;
 
         if (apiResponse.getResponse().statusCode() == 200) {
             updateAttributes(apiResponse.getBody());
@@ -158,5 +155,9 @@ public class PublicKey extends APIObject {
     @SuppressWarnings("unused")
     public String getSub() {
         return sub;
+    }
+
+    public APIResponse getLastApiResponse() {
+        return lastApiResponse;
     }
 }

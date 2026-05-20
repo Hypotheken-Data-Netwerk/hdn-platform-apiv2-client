@@ -27,13 +27,7 @@ public class PublicKeyList extends APIObject {
      * The node of the list of publickeys to retrieve
      */
     private String node = null;
-
-    private void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
-        if(onBehalfOf==null || !onBehalfOf.matches("\\d{6}")) {
-            logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
-            throw new InvalidParameterException("onBehalfOf is required");
-        }
-    }
+    private APIResponse lastApiResponse;
 
     /**
      * Retrieves all hooks based on the parameters and filter provided
@@ -73,6 +67,7 @@ public class PublicKeyList extends APIObject {
                 // Process the get call
                 String uri = String.format(APIConstants.PUBLIC_KEYS_GET);
                 APIResponse apiResponse = apiController.get(APIController.buildUrl(uri, params), onBehalfOf);
+                lastApiResponse = apiResponse;
 
                 // When the list of dossiers is returned
                 if (apiResponse.getResponse().statusCode() == 200) {
@@ -127,6 +122,7 @@ public class PublicKeyList extends APIObject {
             // Process the get call
             String uri = String.format(APIConstants.PUBLIC_KEY_ALGORITHM);
             APIResponse apiResponse = apiController.get(APIController.buildUrl(uri, new HashMap<>()));
+            lastApiResponse = apiResponse;
 
             // When the list of dossiers is returned
             if (apiResponse.getResponse().statusCode() == 200) {
@@ -210,5 +206,9 @@ public class PublicKeyList extends APIObject {
     public PublicKeyList setNode(String node) {
         this.node = node;
         return this;
+    }
+
+    public APIResponse getLastApiResponse() {
+        return lastApiResponse;
     }
 }

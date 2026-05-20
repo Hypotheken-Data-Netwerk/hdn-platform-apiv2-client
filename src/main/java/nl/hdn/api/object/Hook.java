@@ -20,6 +20,7 @@ public class Hook extends APIObject {
     private String certificateUuid;
     private String sub;
     private Instant creationDate;
+    private APIResponse lastApiResponse;
 
     private static final String FIELD_RESOURCEUUID = "resourceUuid";
     private static final String FIELD_URL = "url";
@@ -72,13 +73,6 @@ public class Hook extends APIObject {
         creationDate = Instant.parse(attributes.getString(FIELD_CREATIONDATE));
     }
 
-    private void validateOnBehalfOf(String onBehalfOf) throws InvalidParameterException {
-        if (onBehalfOf == null || !onBehalfOf.matches("\\d{6}")) {
-            logger.error("onBehalfOf node is not set or doesn't match 6 digits but required");
-            throw new InvalidParameterException("onBehalfOf is required");
-        }
-    }
-
     public APIResponse create(String onBehalfOf) throws IOException, InterruptedException {
         return create(onBehalfOf, APIController.getInstance());
     }
@@ -95,6 +89,8 @@ public class Hook extends APIObject {
             if (certificateUuid != null) body.put(FIELD_CERTIFICATEUUID, certificateUuid);
 
             APIResponse apiResponse = apiController.post(String.format(APIConstants.HOOK_CREATE), body.toString(), onBehalfOf);
+            lastApiResponse = apiResponse;
+
             if (apiResponse.getResponse().statusCode() == 201) {
                 updateAttributes(apiResponse.getBody());
             }
@@ -121,6 +117,8 @@ public class Hook extends APIObject {
             if (certificateUuid != null) body.put(FIELD_CERTIFICATEUUID, certificateUuid);
 
             APIResponse apiResponse = apiController.put(String.format(APIConstants.HOOK_PUT, this.resourceUuid), body.toString(), onBehalfOf);
+            lastApiResponse = apiResponse;
+
             if (apiResponse.getResponse().statusCode() == 200) {
                 updateAttributes(apiResponse.getBody());
             }
@@ -155,6 +153,7 @@ public class Hook extends APIObject {
         validateOnBehalfOf(onBehalfOf);
 
         APIResponse apiResponse = apiController.get(String.format(APIConstants.HOOK_GET, resourceUuid), onBehalfOf);
+        lastApiResponse = apiResponse;
 
         if (apiResponse.getResponse().statusCode() == 200) {
             updateAttributes(apiResponse.getBody());
@@ -171,6 +170,8 @@ public class Hook extends APIObject {
 
         logger.info("Deleting hook with resource uuid {}", resourceUuid);
         APIResponse apiResponse = apiController.delete(String.format(APIConstants.HOOK_DELETE, resourceUuid), onBehalfOf);
+        lastApiResponse = apiResponse;
+
         logger.info("Resultcode was {}", apiResponse.getResponse().statusCode());
         if (apiResponse.getResponse().statusCode() == 204) {
             resourceUuid = null;
@@ -283,5 +284,9 @@ public class Hook extends APIObject {
     public Hook setUrl(String url) {
         this.url = url;
         return this;
+    }
+
+    public APIResponse getLastApiResponse() {
+        return lastApiResponse;
     }
 }
